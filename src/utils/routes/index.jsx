@@ -48,6 +48,7 @@ const IngresoPage = withLazyLoadably(lazy(() => import('@/pages/home/ingreso')))
 const TurnoPage = withLazyLoadably(lazy(() => import('@/pages/home/turno')));
 const PersonaPage = withLazyLoadably(lazy(() => import('@/pages/home/persona')));
 const GrupoPage = withLazyLoadably(lazy(() => import('@/pages/home/grupo')));
+const ContratoPage = withLazyLoadably(lazy(() => import('@/pages/home/contrato')));
 function Router() {
 	return (
 		<BrowserRouter>
@@ -69,10 +70,11 @@ function Router() {
 						</Route>
 					</Route>
 
-					<Route path="home" element={<MainLayout />}>
+					<Route path="home/" element={<MainLayout />}>
 						<Route path="turno" element={<TurnoPage />} />
 						<Route path="persona" element={<PersonaPage />} />
 						<Route path="grupo" element={<GrupoPage />} />
+						<Route path="contrato" element={<ContratoPage />} />
 					</Route>
 					<Route path="/" element={<MainLayout />}>
 						<Route index element={<Dashboard1Page />} />

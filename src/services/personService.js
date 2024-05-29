@@ -1,6 +1,16 @@
 // services/personService.js
 import axiosInstance from './axiosConfig';
 
+const getPersonsContracts = async () => {
+	try {
+		const response = await axiosInstance.get('/Persons/Contract');
+		return response.data;
+	} catch (error) {
+		console.error('Error fetching persons:', error);
+		throw error;
+	}
+};
+
 const getPersons = async () => {
 	try {
 		const response = await axiosInstance.get('/Persons');
@@ -56,4 +66,5 @@ export default {
 	createPerson,
 	updatePerson,
 	deletePerson,
+	getPersonsContracts,
 };

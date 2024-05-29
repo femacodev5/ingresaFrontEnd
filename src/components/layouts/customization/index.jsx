@@ -44,7 +44,7 @@ function CustomizationLayout() {
 						top: '40%',
 						position: 'fixed',
 						right: 10,
-						zIndex: 1,
+						zIndex: 100,
 					}}
 				>
 					<IconButton color="inherit" size="large" disableRipple onClick={openDrawer}>

@@ -1,116 +1,50 @@
-import AddIcon from '@mui/icons-material/Add';
-import {
-	Box,
-	Breadcrumbs,
-	Button,
-	Card,
-	CardContent,
-	Checkbox,
-	Container,
-	FormControl,
-	Grid,
-	InputLabel,
-	MenuItem,
-	Paper,
-	Select,
-	Tab,
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
-	TableRow,
-	Tabs,
-	Typography,
-	Zoom,
-} from '@mui/material';
+import { Breadcrumbs, Card, Typography } from '@mui/material';
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '@/components/pageHeader';
 import { Link } from 'react-router-dom';
 
 import CardHeader from '@/components/cardHeader';
-import { AccountCircle, Send } from '@mui/icons-material';
 
-const data = [
-	{
-		name: {
-			firstName: 'John',
-			lastName: 'Doe',
-		},
-		address: '261 Erdman Ford',
-		city: 'East Daphne',
-		state: 'Kentucky',
-	},
-	{
-		name: {
-			firstName: 'Jane',
-			lastName: 'Doe',
-		},
-		address: '769 Dominic Grove',
-		city: 'Columbus',
-		state: 'Ohio',
-	},
-	{
-		name: {
-			firstName: 'Joe',
-			lastName: 'Doe',
-		},
-		address: '566 Brakus Inlet',
-		city: 'South Linda',
-		state: 'West Virginia',
-	},
-	{
-		name: {
-			firstName: 'Kevin',
-			lastName: 'Vandy',
-		},
-		address: '722 Emie Stream',
-		city: 'Lincoln',
-		state: 'Nebraska',
-	},
-	{
-		name: {
-			firstName: 'Joshua',
-			lastName: 'Rolluffs',
-		},
-		address: '32188 Larkin Turnpike',
-		city: 'Omaha',
-		state: 'Nebraska',
-	},
-];
+import personService from '@/services/personService';
+
 function Persona() {
+	const [data, setData] = useState([]);
+	useEffect(async () => {
+		const response = await personService.getPersons();
+		console.log(response);
+		setData(response);
+	}, []);
+
+	useEffect(() => {
+		console.log(data);
+	}, [data]);
+
 	const columns = useMemo(
 		() => [
 			{
-				accessorKey: 'name.firstName', // access nested data with dot notation
+				accessorKey: 'firstName', // access nested data with dot notation
 				header: 'Nombre',
-				size: 150,
 			},
 			{
-				accessorKey: 'name.lastName',
+				accessorKey: 'lastName',
 				header: 'Apellido',
-				size: 150,
 			},
 			{
-				accessorKey: 'address', // normal accessorKey
+				accessorKey: 'documentNumber', // normal accessorKey
 				header: 'Numero de Documento',
-				size: 200,
 			},
 			{
-				accessorKey: 'city',
+				accessorKey: 'email',
+				header: 'Correo',
+			},
+			{
+				accessorKey: 'clusterName',
 				header: 'Grupo',
-				size: 150,
 			},
 			{
-				accessorKey: '123',
+				accessorKey: 'estadoContrato',
 				header: 'Estado Contrato',
-				size: 150,
-			},
-			{
-				accessorKey: '1s23',
-				header: 'Usuario',
-				size: 150,
 			},
 		],
 		[],
@@ -118,7 +52,7 @@ function Persona() {
 
 	const table = useMaterialReactTable({
 		columns,
-		data, // data must be memoized or stable (useState, useMemo, defined outside of this component, etc.)
+		data,
 	});
 	return (
 		<>

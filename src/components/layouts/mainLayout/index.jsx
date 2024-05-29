@@ -39,11 +39,11 @@ function MainLayout({ container = 'lg', pb = true }) {
 	return (
 		<Box display="flex" minHeight="100vh" flexDirection="column">
 			<Header />
-			<Container
-				maxWidth={container}
-				component="main"
+
+			<Box
 				sx={{
 					flex: '1 0 auto',
+					width: '100%',
 					...(pb && {
 						pb: 5,
 					}),
@@ -56,7 +56,7 @@ function MainLayout({ container = 'lg', pb = true }) {
 				) : (
 					<Outlet />
 				)}
-			</Container>
+			</Box>
 			{withScrollTopFabButton(FabButton)}
 			<Footer />
 		</Box>

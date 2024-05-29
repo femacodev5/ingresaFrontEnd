@@ -45,6 +45,19 @@ const NAV_LINKS_CONFIG = [
 	{
 		id: uuid(),
 		type: 'group',
+		title: 'Turnos',
+		Icon: AccountCircleIcon,
+		menuChildren: [
+			{
+				title: 'Turnos',
+				href: '/home/turno',
+			},
+		],
+	},
+
+	{
+		id: uuid(),
+		type: 'group',
 		title: 'Dashboard',
 		Icon: BarChartOutlinedIcon,
 		menuChildren: [
