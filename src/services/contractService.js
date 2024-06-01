@@ -19,10 +19,26 @@ const getContractById = async (id) => {
 		throw error;
 	}
 };
-
-const createContract = async (contract) => {
+const endContract = async (formData) => {
 	try {
-		const response = await axiosInstance.post('/Contracts', contract);
+		const response = await axiosInstance.post('/Contracts/End', formData, {
+			headers: {
+				'Content-Type': 'multipart/form-data',
+			},
+		});
+		return response.data;
+	} catch (error) {
+		console.error('Error creating contract:', error);
+		throw error;
+	}
+};
+const createContract = async (formData) => {
+	try {
+		const response = await axiosInstance.post('/Contracts', formData, {
+			headers: {
+				'Content-Type': 'multipart/form-data',
+			},
+		});
 		return response.data;
 	} catch (error) {
 		console.error('Error creating contract:', error);
@@ -32,7 +48,11 @@ const createContract = async (contract) => {
 
 const updateContract = async (id, contract) => {
 	try {
-		const response = await axiosInstance.put(`/Contracts/${id}`, contract);
+		const response = await axiosInstance.put(`/Contracts/${id}`, contract, {
+			headers: {
+				'Content-Type': 'multipart/form-data',
+			},
+		});
 		return response.data;
 	} catch (error) {
 		console.error(`Error updating contract with id ${id}:`, error);
@@ -55,4 +75,5 @@ export default {
 	createContract,
 	updateContract,
 	deleteContract,
+	endContract,
 };

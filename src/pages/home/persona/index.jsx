@@ -1,19 +1,27 @@
-import { Breadcrumbs, Card, Typography } from '@mui/material';
+import { Box, Breadcrumbs, Card, IconButton, Typography, Zoom } from '@mui/material';
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
-import { useEffect, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useState } from 'react';
 import PageHeader from '@/components/pageHeader';
+import EditIcon from '@mui/icons-material/Edit';
 import { Link } from 'react-router-dom';
 
 import CardHeader from '@/components/cardHeader';
 
 import personService from '@/services/personService';
+import Modal from '@/components/modal';
+
+const ZoomTransition = forwardRef((props, ref) => <Zoom ref={ref} {...props} />);
 
 function Persona() {
 	const [data, setData] = useState([]);
-	useEffect(async () => {
+
+	const fechData = async () => {
 		const response = await personService.getPersons();
 		console.log(response);
 		setData(response);
+	};
+	useEffect(() => {
+		fechData();
 	}, []);
 
 	useEffect(() => {
@@ -50,9 +58,21 @@ function Persona() {
 		[],
 	);
 
+	const [openModalEditPerson, setOperonModalEditPerson] = useState(false);
+	const editPersona = () => {
+		console.log('asdasd f');
+	};
 	const table = useMaterialReactTable({
 		columns,
 		data,
+		enableRowActions: true,
+		renderRowActions: ({ row }) => (
+			<Box>
+				<IconButton onClick={() => editPersona('Edit')}>
+					<EditIcon />
+				</IconButton>
+			</Box>
+		),
 	});
 	return (
 		<>
@@ -69,6 +89,19 @@ function Persona() {
 					<Typography color="text.tertiary">Persona</Typography>
 				</Breadcrumbs>
 			</PageHeader>
+			<Modal
+				component="form"
+				TransitionComponent={ZoomTransition}
+				openModal={openModalEditPerson}
+				fnCloseModal={() => setOperonModalEditPerson(false)}
+				title="Finalizar Contrato"
+				padding
+				sx={{
+					'& .MuiTextField-root': { my: 1 },
+				}}
+			>
+				asda
+			</Modal>
 
 			<Card component="section" type="section">
 				<CardHeader title="Persona" subtitle="Registro de Personal">

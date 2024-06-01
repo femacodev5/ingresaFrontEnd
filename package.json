@@ -28,6 +28,7 @@
 		"apexcharts": "^3.37.2",
 		"axios": "^1.7.1",
 		"dayjs": "^1.11.11",
+		"dotenv": "^16.4.5",
 		"formik": "^2.2.9",
 		"material-react-table": "^2.13.0",
 		"notistack": "^3.0.1",

@@ -10,6 +10,16 @@ const getShiftsByPersonId = async (personId) => {
 	}
 };
 
+const getShift = async () => {
+	try {
+		const response = await axiosInstance.get('/Shifts');
+		return response.data;
+	} catch (error) {
+		console.error('Error fetching clusters:', error);
+		throw error;
+	}
+};
+
 const getShiftById = async (shiftId) => {
 	try {
 		const response = await axiosInstance.get(`/Shifts/${shiftId}`);
@@ -55,4 +65,5 @@ export default {
 	createShift,
 	updateShift,
 	deleteShift,
+	getShift,
 };

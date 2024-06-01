@@ -10,6 +10,7 @@ import {
 	FormControlLabel,
 	FormGroup,
 	Grid,
+	IconButton,
 	InputLabel,
 	MenuItem,
 	Paper,
@@ -26,8 +27,9 @@ import {
 	Typography,
 	Zoom,
 } from '@mui/material';
-
-import { forwardRef, useCallback, useEffect, useState } from 'react';
+import DesktopAccessDisabledIcon from '@mui/icons-material/DesktopAccessDisabled';
+import EditIcon from '@mui/icons-material/Edit';
+import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import Modal from '@/components/modal';
 import { DemoContainer } from '@mui/x-date-pickers/internals/demo';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -40,6 +42,8 @@ import CheckIcon from '@mui/icons-material/Check';
 import { useForm } from 'react-hook-form';
 import dayjs from 'dayjs';
 import CardHeader from '@/components/cardHeader';
+import shiftService from '@/services/shiftService';
+import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
 
 const ZoomTransition = forwardRef((props, ref) => <Zoom ref={ref} {...props} />);
 
@@ -70,7 +74,7 @@ function Turno() {
 		minutosSemanales: 1,
 	});
 
-	const [dataHorarioLVS, setDataHorarioLVS] = useState({
+	const [dataHorarioS, setDataHorarioS] = useState({
 		diasNoLaborales: [],
 		minutosSemanales: 1,
 	});
@@ -99,23 +103,26 @@ function Turno() {
 		const totalMinutes = Math.round(minutos); // Redondear la diferencia total de minutos
 		const hours = Math.floor(totalMinutes / 60);
 		const minutes = totalMinutes % 60;
-		return `${hours} horas con ${minutes} minutos`;
+		if (minutes === 0) {
+			return `${hours} hora${hours >= 2 ? 's' : ''} `;
+		}
+		return `${hours} hora${hours >= 2 ? 's' : ''} con ${minutes} minutos`;
 	};
-	const [horarioLunesAViernesSabado, setHorarioLunesAViernesSabado] = useState({
-		inicioMarcacionIngresoLV: dayjs().hour(7).minute(0),
-		horaIngresoLV: dayjs().hour(8).minute(0),
-		finMarcacionIngresoLV: dayjs().hour(8).minute(30),
-		toleranciaLV: true,
-		horaSalidaLV: dayjs().hour(17).minute(30),
-		finMarcacionSalidaLV: dayjs().hour(20).minute(30),
-		minutosDescansoLV: 65,
-		inicioMarcacionDescansoLV: dayjs().hour(12).minute(0),
-		finMarcacionDescansoLV: dayjs().hour(15).minute(0),
+	const [horarioSimple, setHorarioSimple] = useState({
+		inicioMarcacionEntrada: dayjs().hour(7).minute(0),
+		horaEntrada: dayjs().hour(8).minute(0),
+		finMarcacionEntrada: dayjs().hour(8).minute(30),
+		tolerancia: true,
+		horaSalida: dayjs().hour(17).minute(30),
+		finMarcacionSalida: dayjs().hour(20).minute(30),
+		minutosDescanso: 65,
+		inicioMarcacionDescanso: dayjs().hour(12).minute(0),
+		finMarcacionDescanso: dayjs().hour(15).minute(0),
 
-		descansoHabilitadoLV: true,
-		inicioMarcacionIngresoS: dayjs().hour(7).minute(0),
-		horaIngresoS: dayjs().hour(8).minute(0),
-		finMarcacionIngresoS: dayjs().hour(8).minute(30),
+		descansoHabilitado: true,
+		inicioMarcacionEntradaS: dayjs().hour(7).minute(0),
+		horaEntradaS: dayjs().hour(8).minute(0),
+		finMarcacionEntradaS: dayjs().hour(8).minute(30),
 		toleranciaS: true,
 		horaSalidaS: dayjs().hour(15).minute(0),
 		finMarcacionSalidaS: dayjs().hour(19).minute(0),
@@ -125,41 +132,9 @@ function Turno() {
 		descansoHabilitadoS: true,
 	});
 
-	const handleInputChangeHorarioLunesAViernesSabado = (value, fieldName) => {
-		setHorarioLunesAViernesSabado((e) => ({ ...e, [fieldName]: value }));
+	const handleInputChangeHorarioSimple = (value, fieldName) => {
+		setHorarioSimple((e) => ({ ...e, [fieldName]: value }));
 	};
-
-	function calcularMinutosLVS() {
-		const {
-			horaSalidaLV,
-			horaIngresoLV,
-			horaIngresoS,
-			horaSalidaS,
-			minutosDescansoLV,
-			minutosDescansoS,
-			descansoHabilitadoLV,
-			descansoHabilitadoS,
-		} = horarioLunesAViernesSabado;
-
-		const totalMinutosLV = +horaSalidaLV.diff(horaIngresoLV, 'minute') * 5;
-		const totalMinutosS = +horaSalidaS.diff(horaIngresoS, 'minute');
-
-		const totalMinutosSemanaSinDescanso =
-			totalMinutosLV +
-			totalMinutosS -
-			(descansoHabilitadoS ? minutosDescansoS : 0) -
-			(descansoHabilitadoLV ? minutosDescansoLV : 0) * 5;
-
-		console.log(formatHours(totalMinutosSemanaSinDescanso));
-
-		setDataHorarioLVS((e) => ({
-			...e,
-			minutosSemanales: totalMinutosSemanaSinDescanso,
-		}));
-	}
-	useEffect(() => {
-		calcularMinutosLVS();
-	}, [horarioLunesAViernesSabado]);
 
 	const daysOfWeek = [
 		{ name: 'Lunes', number: 1 },
@@ -171,37 +146,91 @@ function Turno() {
 		{ name: 'Domingo', number: 7 },
 	];
 
-	const [horarioLaboral, setHorarioLaboral] = useState(
-		daysOfWeek.map((day) => ({
-			numero: day.number,
-			nombre: day.name,
-			id: day.number,
+	const minutosDiferencia = (inicio, fin) => {
+		const formato = 'HH:mm'; // Formato para extraer solo horas y minutos
+		const horaInicio = dayjs(inicio, formato);
+		const horaFin = dayjs(fin, formato);
 
-			inicioRangoMarcacionIngreso: dayjs().hour(7).minute(0),
-			finRangoMarcacionIngreso: dayjs().hour(8).minute(30),
-			horaIngreso: dayjs().hour(8).minute(0),
+		// Si la hora de fin es anterior a la hora de inicio,
+		// se asume que es al día siguiente, así que se suma un día
+		if (horaFin.isBefore(horaInicio)) {
+			horaFin.add(1, 'day');
+		}
 
-			inicioRangoMarcacionInicioDescanso: dayjs().hour(12).minute(0),
-			finRangoMarcacionInicioDescanso: dayjs().hour(15).minute(0),
-			horaInicioDescanso: dayjs().hour(13).minute(0),
+		// Calcular la diferencia en minutos
+		const diferencia = Math.abs(horaFin.diff(horaInicio, 'minute'));
 
-			inicioRangoMarcacionFinDescanso: dayjs().hour(12).minute(0),
-			finRangoMarcacionFinDescanso: dayjs().hour(16).minute(0),
-			horaFinDescanso: dayjs().hour(14).minute(0),
+		return diferencia;
+	};
+	const memoizedHorarioLaboral = useMemo(
+		() =>
+			daysOfWeek.map((day) => ({
+				numero: day.number,
+				number: day.number,
+				nombre: day.name,
+				id: day.number,
+				inicioMarcacionEntrada: dayjs().hour(7).minute(0),
+				finMarcacionEntrada: dayjs().hour(8).minute(30),
+				horaEntrada: dayjs().hour(8).minute(0),
 
-			inicioRangoMarcacionSalida: dayjs().hour(17).minute(30),
-			finRangoMarcacionSalida: dayjs().hour(20).minute(30),
-			horaSalida: dayjs().hour(17).minute(30),
+				inicioMarcacionDescanso: dayjs().hour(12).minute(0),
+				minutosDescanso: 60,
+				habilitarDescanso: true,
+				finMarcacionDescanso: dayjs().hour(15).minute(0),
+				inicioMarcacionSalida: dayjs().hour(17).minute(30),
+				finMarcacionSalida: dayjs().hour(20).minute(30),
+				horaSalida: dayjs().hour(17).minute(30),
 
-			minutosTrabajo: 0,
-			minutosDescanso: 0,
-			diaLaboral: day.number !== 7, // Domingo no es laboral
-		})),
+				minutosJornada: 580,
+
+				minutosJornadaNeto: 530,
+				diaLaboral: day.number !== 7, // Domingo no es laboral
+			})),
+		[],
 	);
+
+	const [horarioLaboral, setHorarioLaboral] = useState(memoizedHorarioLaboral);
 
 	useEffect(
 		(e) => {
-			console.log('canbio');
+			console.log(horarioLaboral);
+		},
+		[horarioLaboral],
+	);
+
+	const handleChangeHorarioLaboral = useCallback((newValue, dayNumber, field) => {
+		setHorarioLaboral((prevState) =>
+			prevState.map((day) => {
+				if (day.numero === dayNumber) {
+					const updatedDay = { ...day, [field]: newValue };
+
+					if (field === 'horaEntrada' || field === 'horaSalida' || field === 'minutosDescanso') {
+						updatedDay.minutosTrabajo = minutosDiferencia(updatedDay.horaEntrada, updatedDay.horaSalida);
+
+						updatedDay.minutosJornadaNeto = updatedDay.minutosTrabajo - updatedDay.minutosDescanso;
+					}
+
+					return updatedDay;
+				}
+				return day;
+			}),
+		);
+	}, []);
+
+	useEffect(
+		(e) => {
+			let minutosJornadaSemanal = 0;
+			const diasNoLaborales = [];
+			horarioLaboral.map((e) => {
+				if (e.diaLaboral) {
+					minutosJornadaSemanal += e.minutosJornadaNeto;
+				} else {
+					diasNoLaborales.push(e.nombre);
+				}
+				return 'asd';
+			});
+
+			setDataHorario((e) => ({ diasNoLaborales, minutosSemanales: minutosJornadaSemanal }));
 		},
 		[horarioLaboral],
 	);
@@ -213,7 +242,6 @@ function Turno() {
 			prevHorarioLaboral.map((dia) => (dia.id === id ? { ...dia, diaLaboral: checked } : dia)),
 		);
 	};
-
 	const actualizarHorarioLaboral = () => {
 		let minutosSemanales = 0;
 		const diasNoLaborales = [];
@@ -279,28 +307,132 @@ function Turno() {
 	const label = { inputProps: { 'aria-label': 'checkboxDia' } };
 
 	const [nombreTurno, setNombreTurno] = useState('');
-	const submitTurno = () => {
-		if (diaLaboral === 'Lunes-Viernes+Sabado') {
-			console.log(nombreTurno);
-			console.log(horarioLunesAViernesSabado);
 
-			const newsDetallesTurnos = Array.from({ length: 5 }, () => ({
-				inicioMarcacionEntrada: horarioLunesAViernesSabado.inicioMarcacionIngresoLV,
-				horaEntrada: horarioLunesAViernesSabado.horaIngresoLV,
-				finMarcacionEntrada: horarioLunesAViernesSabado.finMarcacionIngresoLV,
-				inicioToleranciaEntrada: horarioLunesAViernesSabado.toleranciaLV
-					? horarioLunesAViernesSabado.horaIngresoLV
-					: null,
-				finToleranciaEntrada: horarioLunesAViernesSabado.toleranciaLV
-					? horarioLunesAViernesSabado.finMarcacionIngresoLV
-					: null,
-			}));
-			console.log(newsDetallesTurnos);
+	const [data, setData] = useState([]);
+	const fetchData = async () => {
+		const response = await shiftService.getShift();
+		console.log(response);
+		setData(response);
+	};
+	useEffect(() => {
+		fetchData();
+	}, []);
+	const columns = useMemo(
+		() => [
+			{
+				accessorKey: 'name', // access nested data with dot notation
+				header: 'Nombre',
+			},
+			{
+				accessorKey: 'totalMinutosJornadaNeto', // normal accessorKey
+				header: 'Horas Semanales',
+				accessorFn: (row) => formatHours(row.totalMinutosJornadaNeto),
+			},
+		],
+		[],
+	);
+
+	const table = useMaterialReactTable({
+		columns,
+		data,
+		enableRowNumbers: true,
+		enableRowActions: true,
+
+		renderDetailPanel: ({ row }) => (
+			<TableContainer component={Paper}>
+				<Table>
+					<TableHead>
+						<TableRow>
+							<TableCell align="center">Dia</TableCell>
+							<TableCell align="center">Hora Inicio</TableCell>
+							<TableCell align="center">Hora Fin</TableCell>
+							<TableCell align="center">Descanso</TableCell>
+							<TableCell align="center">Horas</TableCell>
+						</TableRow>
+					</TableHead>
+					<TableBody>
+						{row.original?.shiftDetails.map((e) => (
+							<TableRow>
+								<TableCell align="center">{daysOfWeek[Number(e.diaSemana) - 1].name}</TableCell>
+								<TableCell align="center">{e.horaEntrada}</TableCell>
+								<TableCell align="center">{e.horaSalida}</TableCell>
+								<TableCell align="center">{e.minutosDescanso}</TableCell>
+								<TableCell align="center">{formatHours(e.minutosJornadaNeto)}</TableCell>
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
+			</TableContainer>
+		),
+		renderRowActions: ({ row, table }) => [
+			<Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+				<IconButton
+					color="primary"
+					onClick={() =>
+						window.open(`mailto:kevinvandy@mailinator.com?subject=Hello ${row.original.firstName}!`)
+					}
+				>
+					<EditIcon />
+				</IconButton>
+
+				<IconButton
+					color="error"
+					onClick={() => {
+						data.splice(row.index, 1);
+					}}
+				>
+					<DesktopAccessDisabledIcon />
+				</IconButton>
+			</Box>,
+		],
+	});
+
+	const submitTurno = async () => {
+		if (tabValue === 0) {
+			if (diaLaboral === 'Lunes-Viernes+Sabado') {
+				console.log(nombreTurno);
+				console.log(horarioSimple);
+
+				const newsDetallesTurnos = Array.from({ length: 5 }, (_, index) => ({
+					numero: index + 1,
+					number: index + 1,
+					inicioMarcacionEntrada: horarioSimple.inicioMarcacionEntrada,
+					finMarcacionEntrada: horarioSimple.finMarcacionEntrada,
+					horaEntrada: horarioSimple.horaEntrada,
+
+					inicioMarcacionDescanso: horarioSimple.inicioMarcacionDescanso,
+					minutosDescanso: horarioSimple.minutosDescanso,
+					finMarcacionDescanso: horarioSimple.finMarcacionDescanso,
+					habilitarDescanso: horarioSimple.descansoHabilitado,
+
+					inicioMarcacionSalida: horarioSimple.finMarcacionSalida,
+					finMarcacionSalida: horarioSimple.horaSalida,
+					horaSalida: horarioSimple.horaSalida,
+
+					minutosJornada: minutosDiferencia(horarioSimple.horaEntrada, horarioSimple.horaSalida),
+
+					minutosJornadaNeto:
+						minutosDiferencia(horarioSimple.horaEntrada, horarioSimple.horaSalida) -
+						horarioSimple.minutosDescanso,
+					diaLaboral: true,
+				}));
+				const newTurno = {
+					name: nombreTurno,
+					type: diaLaboral,
+					detalleTurno: newsDetallesTurnos,
+				};
+				const response = await shiftService.createShift(newTurno);
+				console.log(response);
+			}
+		} else {
+			console.log('asda');
 			const newTurno = {
-				nombre: nombreTurno,
-				tipo: diaLaboral,
-				detalleTurno: [],
+				name: nombreTurno,
+				type: 'avanzado',
+				detalleTurno: horarioLaboral,
 			};
+			const response = await shiftService.createShift(newTurno);
+			console.log(response);
 		}
 	};
 	return (
@@ -320,721 +452,841 @@ function Turno() {
 			</PageHeader>
 			<Box>
 				<Card>
-					<Box>
-						<Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-							<Tabs value={tabValue} onChange={handleTabChange} aria-label="basic tabs example">
-								<Tab label="Simple" {...a11yProps(0)} />
-								<Tab label="Avanzado" {...a11yProps(1)} />
-							</Tabs>
-						</Box>
-						<TabPanel value={tabValue} index={0}>
-							<Box sx={{ display: 'flex', my: 2 }}>
-								<TextField
-									size="small"
-									fullWidth
-									label="Nombre del turno"
-									value={nombreTurno}
-									onChange={(e) => {
-										setNombreTurno(e.target.value);
-									}}
-								/>
-								<Button variant="contained" sx={{ mx: 2 }} size="small" onClick={submitTurno}>
-									Guardar
-								</Button>
-							</Box>
-							<FormControl fullWidth>
-								<InputLabel id="demo-simple-select-label">Dia Laboral</InputLabel>
-								<Select
-									labelId="demo-simple-select-label"
-									id="demo-simple-select"
-									value={diaLaboral}
-									label="Dias Laborales"
-									size="small"
-									sx={{ mb: 2 }}
-									onChange={handleDiaLaboral}
-								>
-									<MenuItem value="Lunes-Viernes+Sabado">Lunes - Viernes + Sabado</MenuItem>
-									<MenuItem value="Lunes-Viernes">Lunes - Viernes</MenuItem>
-									<MenuItem value="Lunes-Domingo">Todos los Dias</MenuItem>
-									<MenuItem value="Personalizado">Personalizado</MenuItem>
-								</Select>
-								{diaLaboral === 'Lunes-Viernes+Sabado' && (
-									<Box>
-										<Card>
-											<CardHeader title="Lunes -Viernes " />
-
-											<LocalizationProvider dateAdapter={AdapterDayjs}>
-												<Grid container spacing={2}>
-													<Grid item xs={8}>
-														<Card>
-															<Typography variant="h4" sx={{ pb: 2 }}>
-																Ingreso
-															</Typography>
-															<Box
-																sx={{
-																	display: 'flex',
-																	justifyContent: 'start',
-																	alignItems: 'center',
-																	width: '100%',
-
-																	'.MuiTextField-root': {
-																		minWidth: '0px',
-
-																		width: '150px',
-																		mr: 2,
-																	},
-																}}
-															>
-																<TimePicker
-																	label="Inicio Marcacion"
-																	slotProps={{ textField: { size: 'small' } }}
-																	value={
-																		horarioLunesAViernesSabado.inicioMarcacionIngresoLV
-																	}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'inicioMarcacionIngresoLV',
-																		)
-																	}
-																/>
-
-																<TimePicker
-																	label="Hora Ingreso"
-																	slotProps={{ textField: { size: 'small' } }}
-																	value={horarioLunesAViernesSabado.horaIngresoLV}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'horaIngresoLV',
-																		)
-																	}
-																/>
-
-																<TimePicker
-																	label="Fin Marcacion"
-																	slotProps={{ textField: { size: 'small' } }}
-																	value={
-																		horarioLunesAViernesSabado.finMarcacionIngresoLV
-																	}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'finMarcacionIngresoLV',
-																		)
-																	}
-																/>
-
-																<FormGroup>
-																	<FormControlLabel
-																		control={
-																			<Checkbox
-																				checked={
-																					horarioLunesAViernesSabado.toleranciaLV
-																				}
-																				onChange={(event) =>
-																					handleInputChangeHorarioLunesAViernesSabado(
-																						event.target.checked,
-																						'toleranciaLV',
-																					)
-																				}
-																			/>
-																		}
-																		label=" tiempo de Tolerancia"
-																	/>
-																</FormGroup>
-															</Box>
-														</Card>
-													</Grid>
-													<Grid item xs={4}>
-														<Card>
-															<Typography variant="h4" sx={{ pb: 2 }}>
-																Salida
-															</Typography>
-															<Box
-																sx={{
-																	display: 'flex',
-																	justifyContent: 'start',
-																	alignItems: 'center',
-																	width: '100%',
-
-																	'.MuiTextField-root': {
-																		minWidth: '0px',
-
-																		width: '150px',
-																		mr: 2,
-																	},
-																}}
-															>
-																<TimePicker
-																	label="Hora Salida"
-																	value={horarioLunesAViernesSabado.horaSalidaLV}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'horaSalidaLV',
-																		)
-																	}
-																	slotProps={{ textField: { size: 'small' } }}
-																/>
-
-																<TimePicker
-																	label="Fin Marcacion"
-																	value={
-																		horarioLunesAViernesSabado.finMarcacionSalidaLV
-																	}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'finMarcacionSalidaLV',
-																		)
-																	}
-																	slotProps={{ textField: { size: 'small' } }}
-																/>
-															</Box>
-														</Card>
-													</Grid>
-													<Grid item xs={12}>
-														<Card>
-															<Box
-																sx={{
-																	display: 'flex',
-
-																	alignItems: 'center',
-																	justifyContent: 'space-between',
-																}}
-															>
-																<Typography variant="h4" sx={{ pb: 2 }}>
-																	Descanso
-																</Typography>
-																<FormControlLabel
-																	control={
-																		<Checkbox
-																			checked={
-																				horarioLunesAViernesSabado.descansoHabilitadoLV
-																			}
-																			onChange={(event) =>
-																				handleInputChangeHorarioLunesAViernesSabado(
-																					event.target.checked,
-																					'descansoHabilitadoLV',
-																				)
-																			}
-																		/>
-																	}
-																	label="Habilitar descanso"
-																/>
-															</Box>
-
-															<Box
-																sx={{
-																	display: 'flex',
-																	justifyContent: 'start',
-																	alignItems: 'center',
-																	width: '100%',
-
-																	'.MuiTextField-root': {
-																		minWidth: '0px',
-
-																		width: '150px',
-																		mr: 2,
-																	},
-																}}
-															>
-																<TextField
-																	size="small"
-																	label="minutos Descanso"
-																	type="number"
-																	disabled={
-																		!horarioLunesAViernesSabado.descansoHabilitadoLV
-																	}
-																	value={horarioLunesAViernesSabado.minutosDescansoLV}
-																	onChange={(event) => {
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event.target.value,
-																			'minutosDescansoLV',
-																		);
-																	}}
-																/>
-
-																<TimePicker
-																	label="Inicio Marcacion"
-																	value={
-																		horarioLunesAViernesSabado.inicioMarcacionDescansoLV
-																	}
-																	disabled={
-																		!horarioLunesAViernesSabado.descansoHabilitadoLV
-																	}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'inicioMarcacionDescansoLV',
-																		)
-																	}
-																	slotProps={{ textField: { size: 'small' } }}
-																/>
-																<TimePicker
-																	label="Fin Marcacion"
-																	value={
-																		horarioLunesAViernesSabado.finMarcacionDescansoLV
-																	}
-																	disabled={
-																		!horarioLunesAViernesSabado.descansoHabilitadoLV
-																	}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'finMarcacionDescansoLV',
-																		)
-																	}
-																	slotProps={{ textField: { size: 'small' } }}
-																/>
-															</Box>
-														</Card>
-													</Grid>
-												</Grid>
-											</LocalizationProvider>
-										</Card>
-										<Card>
-											<CardHeader title="Sabado" />
-
-											<LocalizationProvider dateAdapter={AdapterDayjs}>
-												<Grid container spacing={2}>
-													<Grid item xs={8}>
-														<Card>
-															<Typography variant="h4" sx={{ pb: 2 }}>
-																Ingreso
-															</Typography>
-															<Box
-																sx={{
-																	display: 'flex',
-																	justifyContent: 'start',
-																	alignItems: 'center',
-																	width: '100%',
-
-																	'.MuiTextField-root': {
-																		minWidth: '0px',
-
-																		width: '150px',
-																		mr: 2,
-																	},
-																}}
-															>
-																<TimePicker
-																	label="Inicio Marcacion"
-																	slotProps={{ textField: { size: 'small' } }}
-																	value={
-																		horarioLunesAViernesSabado.inicioMarcacionIngresoS
-																	}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'inicioMarcacionIngresoS',
-																		)
-																	}
-																/>
-
-																<TimePicker
-																	label="Hora Ingreso"
-																	slotProps={{ textField: { size: 'small' } }}
-																	value={horarioLunesAViernesSabado.horaIngresoS}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'horaIngresoS',
-																		)
-																	}
-																/>
-
-																<TimePicker
-																	label="Fin Marcacion"
-																	slotProps={{ textField: { size: 'small' } }}
-																	value={
-																		horarioLunesAViernesSabado.finMarcacionIngresoS
-																	}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'finMarcacionIngresoS',
-																		)
-																	}
-																/>
-
-																<FormGroup>
-																	<FormControlLabel
-																		control={
-																			<Checkbox
-																				checked={
-																					horarioLunesAViernesSabado.toleranciaS
-																				}
-																				onChange={(event) =>
-																					handleInputChangeHorarioLunesAViernesSabado(
-																						event.target.checked,
-																						'toleranciaS',
-																					)
-																				}
-																			/>
-																		}
-																		label=" tiempo de Tolerancia"
-																	/>
-																</FormGroup>
-															</Box>
-														</Card>
-													</Grid>
-													<Grid item xs={4}>
-														<Card>
-															<Typography variant="h4" sx={{ pb: 2 }}>
-																Salida
-															</Typography>
-															<Box
-																sx={{
-																	display: 'flex',
-																	justifyContent: 'start',
-																	alignItems: 'center',
-																	width: '100%',
-
-																	'.MuiTextField-root': {
-																		minWidth: '0px',
-
-																		width: '150px',
-																		mr: 2,
-																	},
-																}}
-															>
-																<TimePicker
-																	label="Hora Salida"
-																	value={horarioLunesAViernesSabado.horaSalidaS}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'horaSalidaS',
-																		)
-																	}
-																	slotProps={{ textField: { size: 'small' } }}
-																/>
-
-																<TimePicker
-																	label="Fin Marcacion"
-																	value={
-																		horarioLunesAViernesSabado.finMarcacionSalidaS
-																	}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'finMarcacionSalidaS',
-																		)
-																	}
-																	slotProps={{ textField: { size: 'small' } }}
-																/>
-															</Box>
-														</Card>
-													</Grid>
-													<Grid item xs={12}>
-														<Card>
-															<Box
-																sx={{
-																	display: 'flex',
-
-																	alignItems: 'center',
-																	justifyContent: 'space-between',
-																}}
-															>
-																<Typography variant="h4" sx={{ pb: 2 }}>
-																	Descanso
-																</Typography>
-																<FormControlLabel
-																	control={
-																		<Checkbox
-																			checked={
-																				horarioLunesAViernesSabado.descansoHabilitadoS
-																			}
-																			onChange={(event) =>
-																				handleInputChangeHorarioLunesAViernesSabado(
-																					event.target.checked,
-																					'descansoHabilitadoS',
-																				)
-																			}
-																		/>
-																	}
-																	label="Habilitar descanso"
-																/>
-															</Box>
-															<Box
-																sx={{
-																	display: 'flex',
-																	justifyContent: 'start',
-																	alignItems: 'center',
-																	width: '100%',
-
-																	'.MuiTextField-root': {
-																		minWidth: '0px',
-
-																		width: '150px',
-																		mr: 2,
-																	},
-																}}
-															>
-																<TextField
-																	size="small"
-																	label="minutos Almuero"
-																	type="number"
-																	disabled={
-																		!horarioLunesAViernesSabado.descansoHabilitadoS
-																	}
-																	value={horarioLunesAViernesSabado.minutosDescansoS}
-																	onChange={(event) => {
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event.target.value,
-																			'minutosDescansoS',
-																		);
-																	}}
-																/>
-
-																<TimePicker
-																	label="Fin Marcacion"
-																	value={
-																		horarioLunesAViernesSabado.inicioMarcacionDescansoS
-																	}
-																	disabled={
-																		!horarioLunesAViernesSabado.descansoHabilitadoS
-																	}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'inicioMarcacionDescansoS',
-																		)
-																	}
-																	slotProps={{ textField: { size: 'small' } }}
-																/>
-																<TimePicker
-																	label="Fin Marcacion"
-																	disabled={
-																		!horarioLunesAViernesSabado.descansoHabilitadoS
-																	}
-																	value={
-																		horarioLunesAViernesSabado.finMarcacionDescansoS
-																	}
-																	onChange={(event) =>
-																		handleInputChangeHorarioLunesAViernesSabado(
-																			event,
-																			'finMarcacionDescansoS',
-																		)
-																	}
-																	slotProps={{ textField: { size: 'small' } }}
-																/>
-															</Box>
-														</Card>
-													</Grid>
-												</Grid>
-											</LocalizationProvider>
-										</Card>
-									</Box>
-								)}
-
+					<CardContent>
+						{modalNuevoTurno ? (
+							<Box>
 								<Card>
-									Horas Esperadas:
-									<Typography variant="h4">{formatHours(dataHorarioLVS.minutosSemanales)}</Typography>
-								</Card>
-							</FormControl>
-						</TabPanel>
-						<TabPanel value={tabValue} index={1}>
-							<Card>
-								<CardContent>
 									<Box>
-										<Typography variant="h6">Horas Semana</Typography>
-										<Typography variant="h4">
-											{formatHours(dataHorario.minutosSemanales)}
-										</Typography>
-									</Box>
-									<Box>
-										<Typography variant="h6">Dia No Laboral</Typography>
-										<Typography variant="h4"> {dataHorario.diasNoLaborales.join(', ')}</Typography>
-									</Box>
-								</CardContent>
-							</Card>
-							<TableContainer component={Paper}>
-								<Table
-									sx={{
-										'.MuiTextField-root': {
-											minWidth: '0px',
+										<Box sx={{ display: 'flex', my: 2 }}>
+											<TextField
+												size="small"
+												fullWidth
+												label="Nombre del turno"
+												value={nombreTurno}
+												onChange={(e) => {
+													setNombreTurno(e.target.value);
+												}}
+											/>
+											<Button variant="contained" sx={{ mx: 2 }} onClick={submitTurno}>
+												Guardar
+											</Button>
 
-											width: '120px',
-											mr: 2,
-										},
-									}}
-									aria-label="simple table"
-								>
-									<TableHead>
-										<TableRow>
-											<TableCell colSpan={2} align="center">
-												Dia Semana
-											</TableCell>
-											<TableCell align="center" colSpan={3}>
-												Ingreso
-											</TableCell>
-											<TableCell align="center" colSpan={3}>
-												Inicio Descanso
-											</TableCell>
-											<TableCell align="center" colSpan={3}>
-												Fin Descanso
-											</TableCell>
-											<TableCell align="center" colSpan={3}>
-												Salida
-											</TableCell>
-										</TableRow>
-										<TableRow>
-											<TableCell align="center">
-												<CheckIcon />
-											</TableCell>
-											<TableCell>Dia Semana</TableCell>
-
-											<TableCell align="center">Rango Inicial</TableCell>
-											<TableCell align="center">Hora</TableCell>
-											<TableCell align="center">Rango Final</TableCell>
-
-											<TableCell align="center">Rango Inicial</TableCell>
-											<TableCell align="center">Hora</TableCell>
-											<TableCell align="center">Rango Final</TableCell>
-
-											<TableCell align="center">Rango Inicial</TableCell>
-											<TableCell align="center">Hora</TableCell>
-											<TableCell align="center">Rango Final</TableCell>
-
-											<TableCell align="center">Rango Inicial</TableCell>
-											<TableCell align="center">Hora</TableCell>
-											<TableCell align="center">Rango Final</TableCell>
-										</TableRow>
-									</TableHead>
-									<TableBody>
-										{horarioLaboral?.map((row) => (
-											<TableRow
-												key={row.nombre}
-												sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+											<Button
+												variant="contained"
+												sx={{ mx: 2 }}
+												color="error"
+												onClick={handleCloseModalNuevoTurno}
 											>
-												<TableCell align="left">
-													<Checkbox value={row.diaLaboral} />
-												</TableCell>
-												<TableCell component="th" scope="row">
-													{row.nombre}
-												</TableCell>
-												<TableCell align="center">
+												Cancelar
+											</Button>
+										</Box>
+
+										<Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+											<Tabs
+												value={tabValue}
+												onChange={handleTabChange}
+												aria-label="basic tabs example"
+											>
+												<Tab label="Simple" {...a11yProps(0)} />
+												<Tab label="Avanzado" {...a11yProps(1)} />
+											</Tabs>
+										</Box>
+										<TabPanel value={tabValue} index={0}>
+											<FormControl fullWidth>
+												<InputLabel id="demo-simple-select-label">Dia Laboral</InputLabel>
+												<Select
+													labelId="demo-simple-select-label"
+													id="demo-simple-select"
+													value={diaLaboral}
+													label="Dias Laborales"
+													size="small"
+													sx={{ mb: 2 }}
+													onChange={handleDiaLaboral}
+												>
+													<MenuItem value="Lunes-Viernes+Sabado">
+														Lunes - Viernes + Sabado
+													</MenuItem>
+													<MenuItem value="Lunes-Viernes">Lunes - Viernes</MenuItem>
+													<MenuItem value="Lunes-Domingo">Todos los Dias</MenuItem>
+													<MenuItem value="Personalizado">Personalizado</MenuItem>
+												</Select>
+
+												{diaLaboral === 'Personalizado' && (
+													<Card sx={{ display: 'flex', justifyContent: 'center' }}>
+														<FormGroup sx={{ display: 'flex' }} row>
+															{daysOfWeek.map((e) => (
+																<FormControlLabel
+																	control={
+																		<Checkbox
+																			defaultChecked
+																			onChange={() => {
+																				setDiaLaboral(e.name);
+																			}}
+																		/>
+																	}
+																	label={e.name}
+																/>
+															))}
+														</FormGroup>
+													</Card>
+												)}
+												<Card>
+													Horas Esperadas
+													<Typography variant="h4">
+														{formatHours(dataHorarioS.minutosSemanales)}
+													</Typography>
+												</Card>
+												<Card>
+													<CardHeader title="horario" />
+
 													<LocalizationProvider dateAdapter={AdapterDayjs}>
-														<TimePicker
-															slotProps={{ textField: { size: 'small' } }}
-															value={row.inicioRangoMarcacionIngreso}
-														/>
+														<Grid container spacing={2}>
+															<Grid item xs={8}>
+																<Card>
+																	<Typography variant="h4" sx={{ pb: 2 }}>
+																		Entrada
+																	</Typography>
+																	<Box
+																		sx={{
+																			display: 'flex',
+																			justifyContent: 'start',
+																			alignItems: 'center',
+																			width: '100%',
+
+																			'.MuiTextField-root': {
+																				minWidth: '0px',
+
+																				width: '150px',
+																				mr: 2,
+																			},
+																		}}
+																	>
+																		<TimePicker
+																			label="Inicio Marcacion"
+																			slotProps={{
+																				textField: { size: 'small' },
+																			}}
+																			value={horarioSimple.inicioMarcacionEntrada}
+																			onChange={(event) =>
+																				handleInputChangeHorarioSimple(
+																					event,
+																					'inicioMarcacionEntrada',
+																				)
+																			}
+																		/>
+
+																		<TimePicker
+																			label="Hora Entrada"
+																			slotProps={{
+																				textField: { size: 'small' },
+																			}}
+																			value={horarioSimple.horaEntrada}
+																			onChange={(event) =>
+																				handleInputChangeHorarioSimple(
+																					event,
+																					'horaEntrada',
+																				)
+																			}
+																		/>
+
+																		<TimePicker
+																			label="Fin Marcacion"
+																			slotProps={{
+																				textField: { size: 'small' },
+																			}}
+																			value={horarioSimple.finMarcacionEntrada}
+																			onChange={(event) =>
+																				handleInputChangeHorarioSimple(
+																					event,
+																					'finMarcacionEntrada',
+																				)
+																			}
+																		/>
+
+																		<FormGroup>
+																			<FormControlLabel
+																				control={
+																					<Checkbox
+																						checked={
+																							horarioSimple.tolerancia
+																						}
+																						onChange={(event) =>
+																							handleInputChangeHorarioSimple(
+																								event.target.checked,
+																								'tolerancia',
+																							)
+																						}
+																					/>
+																				}
+																				label=" tiempo de Tolerancia"
+																			/>
+																		</FormGroup>
+																	</Box>
+																</Card>
+															</Grid>
+															<Grid item xs={4}>
+																<Card>
+																	<Typography variant="h4" sx={{ pb: 2 }}>
+																		Salida
+																	</Typography>
+																	<Box
+																		sx={{
+																			display: 'flex',
+																			justifyContent: 'start',
+																			alignItems: 'center',
+																			width: '100%',
+
+																			'.MuiTextField-root': {
+																				minWidth: '0px',
+
+																				width: '150px',
+																				mr: 2,
+																			},
+																		}}
+																	>
+																		<TimePicker
+																			label="Hora Salida"
+																			value={horarioSimple.horaSalida}
+																			onChange={(event) =>
+																				handleInputChangeHorarioSimple(
+																					event,
+																					'horaSalida',
+																				)
+																			}
+																			slotProps={{
+																				textField: { size: 'small' },
+																			}}
+																		/>
+
+																		<TimePicker
+																			label="Fin Marcacion"
+																			value={horarioSimple.finMarcacionSalida}
+																			onChange={(event) =>
+																				handleInputChangeHorarioSimple(
+																					event,
+																					'finMarcacionSalida',
+																				)
+																			}
+																			slotProps={{
+																				textField: { size: 'small' },
+																			}}
+																		/>
+																	</Box>
+																</Card>
+															</Grid>
+															<Grid item xs={12}>
+																<Card>
+																	<Box
+																		sx={{
+																			display: 'flex',
+
+																			alignItems: 'center',
+																			justifyContent: 'space-between',
+																		}}
+																	>
+																		<Typography variant="h4" sx={{ pb: 2 }}>
+																			Descanso
+																		</Typography>
+																		<FormControlLabel
+																			control={
+																				<Checkbox
+																					checked={
+																						horarioSimple.descansoHabilitado
+																					}
+																					onChange={(event) =>
+																						handleInputChangeHorarioSimple(
+																							event.target.checked,
+																							'descansoHabilitado',
+																						)
+																					}
+																				/>
+																			}
+																			label="Habilitar descanso"
+																		/>
+																	</Box>
+
+																	<Box
+																		sx={{
+																			display: 'flex',
+																			justifyContent: 'start',
+																			alignItems: 'center',
+																			width: '100%',
+
+																			'.MuiTextField-root': {
+																				minWidth: '0px',
+
+																				width: '150px',
+																				mr: 2,
+																			},
+																		}}
+																	>
+																		<TextField
+																			size="small"
+																			label="minutos Descanso"
+																			type="number"
+																			disabled={!horarioSimple.descansoHabilitado}
+																			value={horarioSimple.minutosDescanso}
+																			onChange={(event) => {
+																				handleInputChangeHorarioSimple(
+																					event.target.value,
+																					'minutosDescanso',
+																				);
+																			}}
+																		/>
+
+																		<TimePicker
+																			label="Inicio Marcacion"
+																			value={
+																				horarioSimple.inicioMarcacionDescanso
+																			}
+																			disabled={!horarioSimple.descansoHabilitado}
+																			onChange={(event) =>
+																				handleInputChangeHorarioSimple(
+																					event,
+																					'inicioMarcacionDescanso',
+																				)
+																			}
+																			slotProps={{
+																				textField: { size: 'small' },
+																			}}
+																		/>
+																		<TimePicker
+																			label="Fin Marcacion"
+																			value={horarioSimple.finMarcacionDescanso}
+																			disabled={!horarioSimple.descansoHabilitado}
+																			onChange={(event) =>
+																				handleInputChangeHorarioSimple(
+																					event,
+																					'finMarcacionDescanso',
+																				)
+																			}
+																			slotProps={{
+																				textField: { size: 'small' },
+																			}}
+																		/>
+																	</Box>
+																</Card>
+															</Grid>
+														</Grid>
 													</LocalizationProvider>
-												</TableCell>
-												<TableCell align="center">
-													<LocalizationProvider dateAdapter={AdapterDayjs}>
-														<TimePicker
-															slotProps={{ textField: { size: 'small' } }}
-															value={row.horaIngreso}
-														/>
-													</LocalizationProvider>
-												</TableCell>
-												<TableCell align="center">
-													<LocalizationProvider dateAdapter={AdapterDayjs}>
-														<TimePicker
-															slotProps={{ textField: { size: 'small' } }}
-															value={row.finRangoMarcacionIngreso}
-														/>
-													</LocalizationProvider>
-												</TableCell>
-												<TableCell align="center">
-													<LocalizationProvider dateAdapter={AdapterDayjs}>
-														<TimePicker
-															slotProps={{ textField: { size: 'small' } }}
-															value={row.inicioRangoMarcacionInicioDescanso}
-														/>
-													</LocalizationProvider>
-												</TableCell>
-												<TableCell align="center">
-													<LocalizationProvider dateAdapter={AdapterDayjs}>
-														<TimePicker
-															slotProps={{ textField: { size: 'small' } }}
-															value={row.horaInicioDescanso}
-														/>
-													</LocalizationProvider>
-												</TableCell>
-												<TableCell align="center">
-													<LocalizationProvider dateAdapter={AdapterDayjs}>
-														<TimePicker
-															slotProps={{ textField: { size: 'small' } }}
-															value={row.finRangoMarcacionInicioDescanso}
-														/>
-													</LocalizationProvider>
-												</TableCell>
-												<TableCell align="center">
-													<LocalizationProvider dateAdapter={AdapterDayjs}>
-														<TimePicker
-															slotProps={{ textField: { size: 'small' } }}
-															value={row.inicioRangoMarcacionFinDescanso}
-														/>
-													</LocalizationProvider>
-												</TableCell>
-												<TableCell align="center">
-													<LocalizationProvider dateAdapter={AdapterDayjs}>
-														<TimePicker
-															slotProps={{ textField: { size: 'small' } }}
-															value={row.horaFinDescanso}
-														/>
-													</LocalizationProvider>
-												</TableCell>
-												<TableCell align="center">
-													<LocalizationProvider dateAdapter={AdapterDayjs}>
-														<TimePicker
-															slotProps={{ textField: { size: 'small' } }}
-															value={row.finRangoMarcacionFinDescanso}
-														/>
-													</LocalizationProvider>
-												</TableCell>
-												<TableCell align="center">
-													<LocalizationProvider dateAdapter={AdapterDayjs}>
-														<TimePicker
-															slotProps={{ textField: { size: 'small' } }}
-															value={row.inicioRangoMarcacionSalida}
-														/>
-													</LocalizationProvider>
-												</TableCell>
-												<TableCell align="center">
-													<LocalizationProvider dateAdapter={AdapterDayjs}>
-														<TimePicker
-															slotProps={{ textField: { size: 'small' } }}
-															value={row.horaSalida}
-														/>
-													</LocalizationProvider>
-												</TableCell>
-												<TableCell align="center">
-													<LocalizationProvider dateAdapter={AdapterDayjs}>
-														<TimePicker
-															slotProps={{ textField: { size: 'small' } }}
-															value={row.finRangoMarcacionSalida}
-														/>
-													</LocalizationProvider>
-												</TableCell>
-											</TableRow>
-										))}
-									</TableBody>
-								</Table>
-							</TableContainer>
-						</TabPanel>
-					</Box>
+												</Card>
+
+												{diaLaboral === 'Lunes-Viernes+Sabado' && (
+													<Card>
+														<CardHeader title="Sabado" />
+
+														<LocalizationProvider dateAdapter={AdapterDayjs}>
+															<Grid container spacing={2}>
+																<Grid item xs={8}>
+																	<Card>
+																		<Typography variant="h4" sx={{ pb: 2 }}>
+																			Entrada
+																		</Typography>
+																		<Box
+																			sx={{
+																				display: 'flex',
+																				justifyContent: 'start',
+																				alignItems: 'center',
+																				width: '100%',
+
+																				'.MuiTextField-root': {
+																					minWidth: '0px',
+
+																					width: '150px',
+																					mr: 2,
+																				},
+																			}}
+																		>
+																			<TimePicker
+																				label="Inicio Marcacion"
+																				slotProps={{
+																					textField: { size: 'small' },
+																				}}
+																				value={
+																					horarioSimple.inicioMarcacionEntradaS
+																				}
+																				onChange={(event) =>
+																					handleInputChangeHorarioSimple(
+																						event,
+																						'inicioMarcacionEntradaS',
+																					)
+																				}
+																			/>
+
+																			<TimePicker
+																				label="Hora Entrada"
+																				slotProps={{
+																					textField: { size: 'small' },
+																				}}
+																				value={horarioSimple.horaEntradaS}
+																				onChange={(event) =>
+																					handleInputChangeHorarioSimple(
+																						event,
+																						'horaEntradaS',
+																					)
+																				}
+																			/>
+
+																			<TimePicker
+																				label="Fin Marcacion"
+																				slotProps={{
+																					textField: { size: 'small' },
+																				}}
+																				value={
+																					horarioSimple.finMarcacionEntradaS
+																				}
+																				onChange={(event) =>
+																					handleInputChangeHorarioSimple(
+																						event,
+																						'finMarcacionEntradaS',
+																					)
+																				}
+																			/>
+
+																			<FormGroup>
+																				<FormControlLabel
+																					control={
+																						<Checkbox
+																							checked={
+																								horarioSimple.toleranciaS
+																							}
+																							onChange={(event) =>
+																								handleInputChangeHorarioSimple(
+																									event.target
+																										.checked,
+																									'toleranciaS',
+																								)
+																							}
+																						/>
+																					}
+																					label=" tiempo de Tolerancia"
+																				/>
+																			</FormGroup>
+																		</Box>
+																	</Card>
+																</Grid>
+																<Grid item xs={4}>
+																	<Card>
+																		<Typography variant="h4" sx={{ pb: 2 }}>
+																			Salida
+																		</Typography>
+																		<Box
+																			sx={{
+																				display: 'flex',
+																				justifyContent: 'start',
+																				alignItems: 'center',
+																				width: '100%',
+
+																				'.MuiTextField-root': {
+																					minWidth: '0px',
+
+																					width: '150px',
+																					mr: 2,
+																				},
+																			}}
+																		>
+																			<TimePicker
+																				label="Hora Salida"
+																				value={horarioSimple.horaSalidaS}
+																				onChange={(event) =>
+																					handleInputChangeHorarioSimple(
+																						event,
+																						'horaSalidaS',
+																					)
+																				}
+																				slotProps={{
+																					textField: { size: 'small' },
+																				}}
+																			/>
+
+																			<TimePicker
+																				label="Fin Marcacion"
+																				value={
+																					horarioSimple.finMarcacionSalidaS
+																				}
+																				onChange={(event) =>
+																					handleInputChangeHorarioSimple(
+																						event,
+																						'finMarcacionSalidaS',
+																					)
+																				}
+																				slotProps={{
+																					textField: { size: 'small' },
+																				}}
+																			/>
+																		</Box>
+																	</Card>
+																</Grid>
+																<Grid item xs={12}>
+																	<Card>
+																		<Box
+																			sx={{
+																				display: 'flex',
+
+																				alignItems: 'center',
+																				justifyContent: 'space-between',
+																			}}
+																		>
+																			<Typography variant="h4" sx={{ pb: 2 }}>
+																				Descanso
+																			</Typography>
+																			<FormControlLabel
+																				control={
+																					<Checkbox
+																						checked={
+																							horarioSimple.descansoHabilitadoS
+																						}
+																						onChange={(event) =>
+																							handleInputChangeHorarioSimple(
+																								event.target.checked,
+																								'descansoHabilitadoS',
+																							)
+																						}
+																					/>
+																				}
+																				label="Habilitar descanso"
+																			/>
+																		</Box>
+																		<Box
+																			sx={{
+																				display: 'flex',
+																				justifyContent: 'start',
+																				alignItems: 'center',
+																				width: '100%',
+
+																				'.MuiTextField-root': {
+																					minWidth: '0px',
+
+																					width: '150px',
+																					mr: 2,
+																				},
+																			}}
+																		>
+																			<TextField
+																				size="small"
+																				label="minutos Almuero"
+																				type="number"
+																				disabled={
+																					!horarioSimple.descansoHabilitadoS
+																				}
+																				value={horarioSimple.minutosDescansoS}
+																				onChange={(event) => {
+																					handleInputChangeHorarioSimple(
+																						event.target.value,
+																						'minutosDescansoS',
+																					);
+																				}}
+																			/>
+
+																			<TimePicker
+																				label="Fin Marcacion"
+																				value={
+																					horarioSimple.inicioMarcacionDescansoS
+																				}
+																				disabled={
+																					!horarioSimple.descansoHabilitadoS
+																				}
+																				onChange={(event) =>
+																					handleInputChangeHorarioSimple(
+																						event,
+																						'inicioMarcacionDescansoS',
+																					)
+																				}
+																				slotProps={{
+																					textField: { size: 'small' },
+																				}}
+																			/>
+																			<TimePicker
+																				label="Fin Marcacion"
+																				disabled={
+																					!horarioSimple.descansoHabilitadoS
+																				}
+																				value={
+																					horarioSimple.finMarcacionDescansoS
+																				}
+																				onChange={(event) =>
+																					handleInputChangeHorarioSimple(
+																						event,
+																						'finMarcacionDescansoS',
+																					)
+																				}
+																				slotProps={{
+																					textField: { size: 'small' },
+																				}}
+																			/>
+																		</Box>
+																	</Card>
+																</Grid>
+															</Grid>
+														</LocalizationProvider>
+													</Card>
+												)}
+											</FormControl>
+										</TabPanel>
+										<TabPanel value={tabValue} index={1}>
+											<Card>
+												<CardContent>
+													<Box>
+														<Typography variant="h6">
+															Horas Semana{setDataHorario}
+														</Typography>
+														<Typography variant="h4">
+															{formatHours(dataHorario.minutosSemanales)}
+														</Typography>
+													</Box>
+													<Box>
+														<Typography variant="h6">Dia No Laboral</Typography>
+														<Typography variant="h4">
+															{' '}
+															{dataHorario.diasNoLaborales.join(', ')}
+														</Typography>
+													</Box>
+												</CardContent>
+											</Card>
+											<TableContainer component={Paper}>
+												<Table
+													sx={{
+														'.MuiTextField-root': {
+															minWidth: '0px',
+
+															width: '120px',
+															mr: 2,
+														},
+													}}
+													aria-label="simple table"
+												>
+													<TableHead>
+														<TableRow>
+															<TableCell colSpan={4} align="center">
+																.
+															</TableCell>
+															<TableCell align="center" colSpan={3}>
+																Entrada
+															</TableCell>
+															<TableCell align="center" colSpan={3}>
+																Descanso
+															</TableCell>
+
+															<TableCell align="center" colSpan={3}>
+																Salida
+															</TableCell>
+														</TableRow>
+														<TableRow>
+															<TableCell align="center">
+																<CheckIcon />
+															</TableCell>
+															<TableCell>Dia </TableCell>
+															<TableCell>Trabajo</TableCell>
+															<TableCell>Descanso</TableCell>
+
+															<TableCell align="center">Rango Inicial</TableCell>
+															<TableCell align="center">Hora</TableCell>
+															<TableCell align="center">Rango Final</TableCell>
+
+															<TableCell align="center">Rango Inicial</TableCell>
+															<TableCell align="center">Minutos</TableCell>
+															<TableCell align="center">Rango Final</TableCell>
+
+															<TableCell align="center">Rango Inicial</TableCell>
+															<TableCell align="center">Hora</TableCell>
+															<TableCell align="center">Rango Final</TableCell>
+														</TableRow>
+													</TableHead>
+													<TableBody>
+														{horarioLaboral?.map((row) => (
+															<TableRow
+																key={row.nombre}
+																sx={{
+																	'&:last-child td, &:last-child th': { border: 0 },
+																}}
+															>
+																<TableCell align="left">
+																	<Checkbox
+																		onChange={(e) => {
+																			cambioDiaLaboral(e, row.id);
+																		}}
+																		checked={row.diaLaboral}
+																	/>
+																</TableCell>
+																<TableCell component="th" scope="row">
+																	{row.nombre}
+																</TableCell>
+																<TableCell component="th" scope="row">
+																	{formatHours(row.minutosJornadaNeto)}
+																</TableCell>
+
+																<TableCell component="th" scope="row">
+																	{formatHours(row.minutosDescanso)}
+																</TableCell>
+																<TableCell align="center">
+																	<LocalizationProvider dateAdapter={AdapterDayjs}>
+																		<TimePicker
+																			slotProps={{ textField: { size: 'small' } }}
+																			value={row.inicioMarcacionEntrada}
+																			onChange={(e) => {
+																				handleChangeHorarioLaboral(
+																					e,
+																					row.number,
+																					'inicioMarcacionEntrada',
+																				);
+																			}}
+																			disabled={!row.diaLaboral}
+																		/>
+																	</LocalizationProvider>
+																</TableCell>
+																<TableCell align="center">
+																	<LocalizationProvider dateAdapter={AdapterDayjs}>
+																		<TimePicker
+																			slotProps={{ textField: { size: 'small' } }}
+																			value={row.horaEntrada}
+																			disabled={!row.diaLaboral}
+																			onChange={(e) => {
+																				handleChangeHorarioLaboral(
+																					e,
+																					row.number,
+																					'horaEntrada',
+																				);
+																			}}
+																		/>
+																	</LocalizationProvider>
+																</TableCell>
+																<TableCell align="center">
+																	<LocalizationProvider dateAdapter={AdapterDayjs}>
+																		<TimePicker
+																			slotProps={{ textField: { size: 'small' } }}
+																			value={row.finMarcacionEntrada}
+																			disabled={!row.diaLaboral}
+																			onChange={(e) => {
+																				handleChangeHorarioLaboral(
+																					e,
+																					row.number,
+																					'finMarcacionEntrada',
+																				);
+																			}}
+																		/>
+																	</LocalizationProvider>
+																</TableCell>
+																<TableCell align="center">
+																	<LocalizationProvider dateAdapter={AdapterDayjs}>
+																		<TimePicker
+																			disabled={!row.diaLaboral}
+																			slotProps={{ textField: { size: 'small' } }}
+																			value={row.inicioMarcacionDescanso}
+																			onChange={(e) => {
+																				handleChangeHorarioLaboral(
+																					e,
+																					row.number,
+																					'inicioMarcacionDescanso',
+																				);
+																			}}
+																		/>
+																	</LocalizationProvider>
+																</TableCell>
+																<TableCell align="center">
+																	<LocalizationProvider dateAdapter={AdapterDayjs}>
+																		<TextField
+																			value={row.minutosDescanso}
+																			size="small"
+																			inputProps={{
+																				min: 0,
+																				style: { textAlign: 'center' },
+																			}}
+																			disabled={!row.diaLaboral}
+																			onChange={(e) => {
+																				handleChangeHorarioLaboral(
+																					e.target.value,
+																					row.number,
+																					'minutosDescanso',
+																				);
+																			}}
+																		/>
+																	</LocalizationProvider>
+																</TableCell>
+																<TableCell align="center">
+																	<LocalizationProvider dateAdapter={AdapterDayjs}>
+																		<TimePicker
+																			slotProps={{ textField: { size: 'small' } }}
+																			value={row.finMarcacionDescanso}
+																			disabled={!row.diaLaboral}
+																			onChange={(e) => {
+																				handleChangeHorarioLaboral(
+																					e,
+																					row.number,
+																					'finRangoMarcacionFinDescanso',
+																				);
+																			}}
+																		/>
+																	</LocalizationProvider>
+																</TableCell>
+																<TableCell align="center">
+																	<LocalizationProvider dateAdapter={AdapterDayjs}>
+																		<TimePicker
+																			slotProps={{ textField: { size: 'small' } }}
+																			value={row.inicioMarcacionSalida}
+																			disabled={!row.diaLaboral}
+																			onChange={(e) => {
+																				handleChangeHorarioLaboral(
+																					e,
+																					row.number,
+																					'inicioMarcacionSalida',
+																				);
+																			}}
+																		/>
+																	</LocalizationProvider>
+																</TableCell>
+																<TableCell align="center">
+																	<LocalizationProvider dateAdapter={AdapterDayjs}>
+																		<TimePicker
+																			slotProps={{ textField: { size: 'small' } }}
+																			value={row.horaSalida}
+																			disabled={!row.diaLaboral}
+																			onChange={(e) => {
+																				handleChangeHorarioLaboral(
+																					e,
+																					row.number,
+																					'horaSalida',
+																				);
+																			}}
+																		/>
+																	</LocalizationProvider>
+																</TableCell>
+																<TableCell align="center">
+																	<LocalizationProvider dateAdapter={AdapterDayjs}>
+																		<TimePicker
+																			disabled={!row.diaLaboral}
+																			slotProps={{ textField: { size: 'small' } }}
+																			value={row.finMarcacionSalida}
+																			onChange={(e) => {
+																				handleChangeHorarioLaboral(
+																					e,
+																					row.number,
+																					'finMarcacionSalida',
+																				);
+																			}}
+																		/>
+																	</LocalizationProvider>
+																</TableCell>
+															</TableRow>
+														))}
+													</TableBody>
+												</Table>
+											</TableContainer>
+										</TabPanel>
+									</Box>
+								</Card>
+							</Box>
+						) : (
+							<Box>
+								<CardHeader title="Turno" subtitle="Registro de Turno">
+									<Button variant="contained" onClick={() => handleOpenModalNuevoTurno()}>
+										Generar Turno
+									</Button>
+								</CardHeader>
+								<MaterialReactTable table={table} />
+							</Box>
+						)}
+					</CardContent>
 				</Card>
-				<Modal
-					TransitionComponent={ZoomTransition}
-					openModal={modalNuevoTurno}
-					maxWidth="fullScreen"
-					fnCloseModal={handleCloseModalNuevoTurno}
-					title="Crear Turno"
-					padding
-				>
-					d
-				</Modal>
-				<CardContent>
-					<Button variant="contained" onClick={() => handleOpenModalNuevoTurno()}>
-						Nuevo Turno
-					</Button>
-				</CardContent>
 			</Box>
 		</>
 	);

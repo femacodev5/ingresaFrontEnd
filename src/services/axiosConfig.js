@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const getToken = () => localStorage.getItem('authToken');
 const axiosInstance = axios.create({
-	baseURL: 'https://localhost:7289/api',
+	baseURL: `${import.meta.env.VITE_BASE_URL}/api`,
 	headers: {
 		'Content-Type': 'application/json',
 	},
