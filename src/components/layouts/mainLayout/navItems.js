@@ -52,6 +52,10 @@ const NAV_LINKS_CONFIG = [
 				title: 'Turnos',
 				href: '/home/turno',
 			},
+			{
+				title: 'Fereados',
+				href: '/home/Fereado',
+			},
 		],
 	},
 

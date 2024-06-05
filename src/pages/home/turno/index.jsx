@@ -351,7 +351,7 @@ function Turno() {
 						</TableRow>
 					</TableHead>
 					<TableBody>
-						{row.original?.shiftDetails.map((e) => (
+						{row.original?.detalleTurnos.map((e) => (
 							<TableRow>
 								<TableCell align="center">{daysOfWeek[Number(e.diaSemana) - 1].name}</TableCell>
 								<TableCell align="center">{e.horaEntrada}</TableCell>

@@ -43,6 +43,7 @@ import EventBusyIcon from '@mui/icons-material/EventBusy';
 import contractService from '@/services/contractService';
 import dayjs from 'dayjs';
 import { Link } from 'react-router-dom';
+import shiftService from '@/services/shiftService';
 
 const ZoomTransition = forwardRef((props, ref) => <Zoom ref={ref} {...props} />);
 
@@ -496,6 +497,7 @@ function Contrato() {
 	const [openModalFinalizarContratoPersona, setOpenModalFinalizarContratoPersona] = useState(false);
 
 	const [nombreContrato, setNombreContrato] = useState('');
+
 	const dataFinaLizarContrato = (data) => {
 		setNombreContrato(data.fileName);
 
