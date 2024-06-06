@@ -68,13 +68,23 @@ function TabPanel(props) {
 }
 
 function Turno() {
+	const daysOfWeek = [
+		{ name: 'Lunes', number: 1 },
+		{ name: 'Martes', number: 2 },
+		{ name: 'Miércoles', number: 3 },
+		{ name: 'Jueves', number: 4 },
+		{ name: 'Viernes', number: 5 },
+		{ name: 'Sábado', number: 6 },
+		{ name: 'Domingo', number: 7 },
+	];
+
 	const [modalNuevoTurno, setModalNuevoTurno] = useState(false);
 	const [dataHorario, setDataHorario] = useState({
 		diasNoLaborales: [],
 		minutosSemanales: 1,
 	});
 
-	const [dataHorarioS, setDataHorarioS] = useState({
+	const [dataHorarioSimple, setDataHorarioSimple] = useState({
 		diasNoLaborales: [],
 		minutosSemanales: 1,
 	});
@@ -83,6 +93,35 @@ function Turno() {
 	const handleDiaLaboral = (event) => {
 		setDiaLaboral(event.target.value);
 	};
+	const memoizedHorarioLaboral = useMemo(
+		() =>
+			daysOfWeek.map((day) => ({
+				numero: day.number,
+				number: day.number,
+				nombre: day.name,
+				id: day.number,
+				inicioMarcacionEntrada: dayjs().hour(7).minute(0),
+				finMarcacionEntrada: dayjs().hour(8).minute(30),
+				horaEntrada: dayjs().hour(8).minute(0),
+
+				inicioMarcacionDescanso: dayjs().hour(12).minute(0),
+				minutosDescanso: 60,
+				habilitarDescanso: true,
+				finMarcacionDescanso: dayjs().hour(15).minute(0),
+				inicioMarcacionSalida: dayjs().hour(17).minute(30),
+				finMarcacionSalida: dayjs().hour(20).minute(30),
+				horaSalida: dayjs().hour(17).minute(30),
+
+				minutosJornada: 580,
+
+				minutosJornadaNeto: 530,
+				diaLaboral: day.number !== 7, // Domingo no es laboral
+			})),
+		[],
+	);
+
+	const [horarioLaboral, setHorarioLaboral] = useState(memoizedHorarioLaboral);
+
 	const handleOpenModalNuevoTurno = () => setModalNuevoTurno(true);
 	const handleCloseModalNuevoTurno = () => setModalNuevoTurno(false);
 	const [componente, setComponente] = useState(null);
@@ -116,6 +155,8 @@ function Turno() {
 		horaSalida: dayjs().hour(17).minute(30),
 		finMarcacionSalida: dayjs().hour(20).minute(30),
 		minutosDescanso: 65,
+		minutosJornada: 580,
+		minutosJornadaNeto: 530,
 		inicioMarcacionDescanso: dayjs().hour(12).minute(0),
 		finMarcacionDescanso: dayjs().hour(15).minute(0),
 
@@ -127,6 +168,8 @@ function Turno() {
 		horaSalidaS: dayjs().hour(15).minute(0),
 		finMarcacionSalidaS: dayjs().hour(19).minute(0),
 		minutosDescansoS: 65,
+		minutosJornadaS: 65,
+		minutosJornadaNetoS: 65,
 		inicioMarcacionDescansoS: dayjs().hour(12).minute(0),
 		finMarcacionDescansoS: dayjs().hour(15).minute(0),
 		descansoHabilitadoS: true,
@@ -136,15 +179,23 @@ function Turno() {
 		setHorarioSimple((e) => ({ ...e, [fieldName]: value }));
 	};
 
-	const daysOfWeek = [
-		{ name: 'Lunes', number: 1 },
-		{ name: 'Martes', number: 2 },
-		{ name: 'Miércoles', number: 3 },
-		{ name: 'Jueves', number: 4 },
-		{ name: 'Viernes', number: 5 },
-		{ name: 'Sábado', number: 6 },
-		{ name: 'Domingo', number: 7 },
-	];
+	function calcularHorasHorarioSimple() {
+		if (diaLaboral === 'Lunes-Viernes+Sabado') {
+			setDataHorarioSimple((e) => ({
+				minutosSemanales: horarioSimple.minutosJornadaNeto * 5 + horarioSimple.minutosJornadaS,
+			}));
+		} else if (diaLaboral === 'Lunes-Domingo') {
+				minutosSemanales: horarioSimple.minutosJornadaNeto * 5 + horarioSimple.minutosJornadaS,
+		}else if (){
+			
+		}
+	}
+	useEffect(
+		(e) => {
+			calcularHorasHorarioSimple();
+		},
+		[horarioSimple],
+	);
 
 	const minutosDiferencia = (inicio, fin) => {
 		const formato = 'HH:mm'; // Formato para extraer solo horas y minutos
@@ -162,41 +213,6 @@ function Turno() {
 
 		return diferencia;
 	};
-	const memoizedHorarioLaboral = useMemo(
-		() =>
-			daysOfWeek.map((day) => ({
-				numero: day.number,
-				number: day.number,
-				nombre: day.name,
-				id: day.number,
-				inicioMarcacionEntrada: dayjs().hour(7).minute(0),
-				finMarcacionEntrada: dayjs().hour(8).minute(30),
-				horaEntrada: dayjs().hour(8).minute(0),
-
-				inicioMarcacionDescanso: dayjs().hour(12).minute(0),
-				minutosDescanso: 60,
-				habilitarDescanso: true,
-				finMarcacionDescanso: dayjs().hour(15).minute(0),
-				inicioMarcacionSalida: dayjs().hour(17).minute(30),
-				finMarcacionSalida: dayjs().hour(20).minute(30),
-				horaSalida: dayjs().hour(17).minute(30),
-
-				minutosJornada: 580,
-
-				minutosJornadaNeto: 530,
-				diaLaboral: day.number !== 7, // Domingo no es laboral
-			})),
-		[],
-	);
-
-	const [horarioLaboral, setHorarioLaboral] = useState(memoizedHorarioLaboral);
-
-	useEffect(
-		(e) => {
-			console.log(horarioLaboral);
-		},
-		[horarioLaboral],
-	);
 
 	const handleChangeHorarioLaboral = useCallback((newValue, dayNumber, field) => {
 		setHorarioLaboral((prevState) =>
@@ -389,10 +405,8 @@ function Turno() {
 
 	const submitTurno = async () => {
 		if (tabValue === 0) {
+			console.log(diaLaboral);
 			if (diaLaboral === 'Lunes-Viernes+Sabado') {
-				console.log(nombreTurno);
-				console.log(horarioSimple);
-
 				const newsDetallesTurnos = Array.from({ length: 5 }, (_, index) => ({
 					numero: index + 1,
 					number: index + 1,
@@ -425,7 +439,7 @@ function Turno() {
 				console.log(response);
 			}
 		} else {
-			console.log('asda');
+			console.log(horarioLaboral);
 			const newTurno = {
 				name: nombreTurno,
 				type: 'avanzado',
@@ -533,7 +547,7 @@ function Turno() {
 												<Card>
 													Horas Esperadas
 													<Typography variant="h4">
-														{formatHours(dataHorarioS.minutosSemanales)}
+														{formatHours(dataHorarioSimple?.minutosSemanales)}
 													</Typography>
 												</Card>
 												<Card>

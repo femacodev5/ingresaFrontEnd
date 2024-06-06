@@ -51,6 +51,15 @@ const updatePerson = async (id, person) => {
 	}
 };
 
+const comprobarDni = async (data) => {
+	try {
+		const response = await axiosInstance.post('/Persons/ComprobarDni', data);
+		return response.data;
+	} catch (error) {
+		console.error('Error fetching persons:', error);
+		throw error;
+	}
+};
 const deletePerson = async (id) => {
 	try {
 		await axiosInstance.delete(`/Persons/${id}`);
@@ -67,4 +76,5 @@ export default {
 	updatePerson,
 	deletePerson,
 	getPersonsContracts,
+	comprobarDni,
 };

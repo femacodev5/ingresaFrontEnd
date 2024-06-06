@@ -62,28 +62,12 @@ const NAV_LINKS_CONFIG = [
 	{
 		id: uuid(),
 		type: 'group',
-		title: 'Dashboard',
+		title: 'Marcacion',
 		Icon: BarChartOutlinedIcon,
 		menuChildren: [
 			{
-				title: 'Dashboard01',
-				href: '/dashboards/dashboard1',
-			},
-			{
-				title: 'Dashboard02',
-				href: '/dashboards/dashboard2',
-			},
-			{
-				title: 'Dashboard03',
-				href: '/dashboards/dashboard3',
-			},
-			{
-				title: 'Dashboard04',
-				href: '/dashboards/dashboard4',
-			},
-			{
-				title: 'Dashboard05',
-				href: '/dashboards/dashboard5',
+				title: 'Maracacion',
+				href: '/home/Marcacion',
 			},
 		],
 	},

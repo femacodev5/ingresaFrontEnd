@@ -44,13 +44,14 @@ const ThemeTypographyPage = withLazyLoadably(lazy(() => import('@/pages/themePag
 const ThemeColorsPage = withLazyLoadably(lazy(() => import('@/pages/themePages/themeColors')));
 const ThemeShadowPage = withLazyLoadably(lazy(() => import('@/pages/themePages/themeShadow')));
 
-const IngresoPage = withLazyLoadably(lazy(() => import('@/pages/home/ingreso')));
+const IngresoPage = withLazyLoadably(lazy(() => import('@/pages/home/marcacion')));
 const TurnoPage = withLazyLoadably(lazy(() => import('@/pages/home/turno')));
 const PersonaPage = withLazyLoadably(lazy(() => import('@/pages/home/persona')));
 const GrupoPage = withLazyLoadably(lazy(() => import('@/pages/home/grupo')));
 const ContratoPage = withLazyLoadably(lazy(() => import('@/pages/home/contrato')));
 
 const HolidayPage = withLazyLoadably(lazy(() => import('@/pages/home/fereado')));
+const MarcacionPage = withLazyLoadably(lazy(() => import('@/pages/home/marcacion')));
 function Router() {
 	return (
 		<BrowserRouter>
@@ -78,6 +79,7 @@ function Router() {
 						<Route path="grupo" element={<GrupoPage />} />
 						<Route path="contrato" element={<ContratoPage />} />
 						<Route path="fereado" element={<HolidayPage />} />
+						<Route path="marcacion" element={<MarcacionPage />} />
 					</Route>
 					<Route path="/" element={<MainLayout />}>
 						<Route index element={<Dashboard1Page />} />
