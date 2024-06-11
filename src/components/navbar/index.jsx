@@ -11,7 +11,7 @@ function Navbar({ navItems, position = 'sticky' }) {
 			<Box bgcolor="background.paper" py={2}>
 				<Container maxWidth="lg">
 					<NavLinks navItems={navItems} />
-				</Container>
+				Asistencia</Container>
 			</Box>
 		</AppBar>
 	);

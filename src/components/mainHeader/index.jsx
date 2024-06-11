@@ -24,7 +24,7 @@ function MainHeader() {
 				overflow="hidden"
 			>
 				<Stack direction="row" alignItems="center" spacing={1}>
-					<Box
+					{/* <Box
 						component="img"
 						width={{
 							xs: 100,
@@ -32,20 +32,21 @@ function MainHeader() {
 						}}
 						src={logo}
 						alt="logo"
-					/>
+					/> */}
 					<Typography
 						component="sub"
-						variant="caption"
+						variant="h2"
 						alignSelf="self-end"
+						sx={{ color: 'primary' }}
 						display={{
 							xs: 'none',
 							sm: 'block',
 						}}
 					>
-						React MUI Template
+						Ingresa
 					</Typography>
 				</Stack>
-				<SearchBar />
+				{/* <SearchBar /> */}
 				<LoggedUser />
 			</Stack>
 		</Box>

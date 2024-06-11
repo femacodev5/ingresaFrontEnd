@@ -14,6 +14,9 @@ import {
 	Typography,
 	Zoom,
 } from '@mui/material';
+
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
+
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
 import { forwardRef, useEffect, useMemo, useState } from 'react';
 import PageHeader from '@/components/pageHeader';
@@ -28,6 +31,7 @@ import { Controller, useForm } from 'react-hook-form';
 import dayjs from 'dayjs';
 import SaveIcon from '@mui/icons-material/Save';
 import shiftService from '@/services/shiftService';
+import DetectorRostros from '@/components/detectorRostros.jsx';
 
 const ZoomTransition = forwardRef((props, ref) => <Zoom ref={ref} {...props} />);
 
@@ -72,34 +76,43 @@ function Persona() {
 				header: 'Apellido',
 			},
 			{
-				accessorKey: 'documentNumber', // normal accessorKey
+				accessorKey: 'code', // normal accessorKey
 				header: 'Numero de Documento',
 			},
 			{
-				accessorKey: 'email',
-				header: 'Correo',
+				accessorKey: 'turnoNombre', // normal accessorKey
+				header: 'Turno',
 			},
 			{
-				accessorKey: 'clusterName',
-				header: 'Grupo',
+				accessorKey: 'jobTitle', // normal accessorKey
+				header: 'Tipo',
 			},
 		],
 		[],
 	);
 
 	const [openModalEditPerson, setOperonModalEditPerson] = useState(false);
+	const [openModalCamaraPerson, setOpenModalCamaraPerson] = useState(false);
 	const [person, setPerson] = useState({});
 
 	const editPersona = async (rowData) => {
 		setPerson(rowData);
 		console.log(rowData);
-		setValue('shiftId', rowData.shiftId);
-		setValue('personId', rowData.personId);
+		setValue('turnoId', rowData.turnoId);
+		setValue('empID', rowData.empID);
 		setOperonModalEditPerson(true);
 	};
 
+	const tomarFotoPersona = async (rowData) => {
+		setPerson(rowData);
+
+		setValue('turnoId', rowData.turnoId);
+		setValue('empID', rowData.empID);
+		setOpenModalCamaraPerson(true);
+	};
+
 	const onSubmitPerson = async (formData) => {
-		const responseUpdatePerson = await personService.updatePerson(formData.personId, formData);
+		const responseUpdatePerson = await personService.updatePerson(formData.empID, formData);
 
 		reset();
 		fechData();
@@ -113,6 +126,9 @@ function Persona() {
 			<Box>
 				<IconButton onClick={() => editPersona(row.original)}>
 					<EditIcon />
+				</IconButton>
+				<IconButton onClick={() => tomarFotoPersona(row.original)}>
+					<CameraAltIcon />
 				</IconButton>
 			</Box>
 		),
@@ -147,14 +163,13 @@ function Persona() {
 				}}
 			>
 				<Typography variant="h4">Dni</Typography>
-				<Typography variant="subtitle1">{person?.documentNumber}</Typography>
+				<Typography variant="subtitle1">{person?.code}</Typography>
 				<Typography variant="h4">Nombre</Typography>
 				<Typography variant="subtitle1">
 					{person?.firstName} {person?.lastName}
 				</Typography>
-
 				<Controller
-					name="shiftId"
+					name="turnoId"
 					control={control}
 					render={({ field }) => (
 						<FormControl fullWidth sx={{ mt: 2 }}>
@@ -185,6 +200,9 @@ function Persona() {
 						Guardar
 					</Button>
 				</Stack>
+			</Modal>
+			<Modal padding openModal={openModalCamaraPerson} fnCloseModal={() => setOpenModalCamaraPerson(false)}>
+				<DetectorRostros empID={person?.empID} />
 			</Modal>
 
 			<Card component="section" type="section">

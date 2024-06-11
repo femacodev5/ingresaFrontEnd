@@ -29,9 +29,9 @@ function Footer() {
 		<Box bgcolor={(theme) => theme.palette.background.paper} py={3} borderTop={1} borderColor="cuaternary.300">
 			<Container maxWidth="lg" component={Stack} direction="column" spacing={5}>
 				<Grid container spacing={3} alignContent="center" justifyContent="center" alignItems="center">
-					<Grid item xs={12} sm={6} md={4}>
+					{/* <Grid item xs={12} sm={6} md={4}>
 						<Box component="img" src={logo} alt="slim logo" width="90%" />
-					</Grid>
+					</Grid> */}
 					<Grid item xs={12} sm={6} md={5}>
 						<Typography variant="h6" my={1}>
 							NEWSLETTER
@@ -128,7 +128,7 @@ function Footer() {
 					<Typography variant="body1" textAlign="center">
 						Copyright 2023 © All Rights Reserved. Slim React MUI Template
 					</Typography>
-					<Typography variant="subtitle1" textAlign="center">
+					{/* <Typography variant="subtitle1" textAlign="center">
 						💻 - Construido por{' '}
 						<Link
 							underline="hover"
@@ -143,8 +143,7 @@ function Footer() {
 							@Antonio Ayola
 						</Link>{' '}
 						con 💛 &#x1F1F2;&#x1F1FD;
-						{/* Built by antonio ayola and contributors */}
-					</Typography>
+					</Typography> */}
 				</Stack>
 			</Container>
 		</Box>

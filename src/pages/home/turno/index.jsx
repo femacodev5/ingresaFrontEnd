@@ -44,6 +44,8 @@ import dayjs from 'dayjs';
 import CardHeader from '@/components/cardHeader';
 import shiftService from '@/services/shiftService';
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
+import { cosineWindow } from '@tensorflow/tfjs';
+import swal from 'sweetalert';
 
 const ZoomTransition = forwardRef((props, ref) => <Zoom ref={ref} {...props} />);
 
@@ -77,6 +79,25 @@ function Turno() {
 		{ name: 'Sábado', number: 6 },
 		{ name: 'Domingo', number: 7 },
 	];
+
+	const [selectDias, setSelectDias] = useState(
+		daysOfWeek.map((e) => ({
+			nombre: e.name,
+			checked: true,
+			numero: e.number,
+		})),
+	);
+
+	const onChangeSelectDia = (nombre) => {
+		setSelectDias(
+			selectDias.map((dia) => {
+				if (dia.nombre === nombre) {
+					return { ...dia, checked: !dia.checked };
+				}
+				return dia;
+			}),
+		);
+	};
 
 	const [modalNuevoTurno, setModalNuevoTurno] = useState(false);
 	const [dataHorario, setDataHorario] = useState({
@@ -150,9 +171,9 @@ function Turno() {
 	const [horarioSimple, setHorarioSimple] = useState({
 		inicioMarcacionEntrada: dayjs().hour(7).minute(0),
 		horaEntrada: dayjs().hour(8).minute(0),
+		horaSalida: dayjs().hour(17).minute(30),
 		finMarcacionEntrada: dayjs().hour(8).minute(30),
 		tolerancia: true,
-		horaSalida: dayjs().hour(17).minute(30),
 		finMarcacionSalida: dayjs().hour(20).minute(30),
 		minutosDescanso: 65,
 		minutosJornada: 580,
@@ -176,6 +197,7 @@ function Turno() {
 	});
 
 	const handleInputChangeHorarioSimple = (value, fieldName) => {
+		console.log(value);
 		setHorarioSimple((e) => ({ ...e, [fieldName]: value }));
 	};
 
@@ -185,9 +207,9 @@ function Turno() {
 				minutosSemanales: horarioSimple.minutosJornadaNeto * 5 + horarioSimple.minutosJornadaS,
 			}));
 		} else if (diaLaboral === 'Lunes-Domingo') {
+			setDataHorarioSimple((e) => ({
 				minutosSemanales: horarioSimple.minutosJornadaNeto * 5 + horarioSimple.minutosJornadaS,
-		}else if (){
-			
+			}));
 		}
 	}
 	useEffect(
@@ -314,7 +336,7 @@ function Turno() {
 							marcaciones: dia.marcaciones.map((marcacion) =>
 								marcacion.tipo === tipo ? { ...marcacion, [campo]: value } : marcacion,
 							),
-					  }
+						}
 					: dia,
 			),
 		);
@@ -336,7 +358,7 @@ function Turno() {
 	const columns = useMemo(
 		() => [
 			{
-				accessorKey: 'name', // access nested data with dot notation
+				accessorKey: 'nombre', // access nested data with dot notation
 				header: 'Nombre',
 			},
 			{
@@ -352,7 +374,7 @@ function Turno() {
 		columns,
 		data,
 		enableRowNumbers: true,
-		enableRowActions: true,
+		// enableRowActions: true,
 
 		renderDetailPanel: ({ row }) => (
 			<TableContainer component={Paper}>
@@ -380,47 +402,104 @@ function Turno() {
 				</Table>
 			</TableContainer>
 		),
-		renderRowActions: ({ row, table }) => [
-			<Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
-				<IconButton
-					color="primary"
-					onClick={() =>
-						window.open(`mailto:kevinvandy@mailinator.com?subject=Hello ${row.original.firstName}!`)
-					}
-				>
-					<EditIcon />
-				</IconButton>
+		// renderRowActions: ({ row, table }) => [
+		// 	<Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+		// 		<IconButton
+		// 			color="primary"
+		// 			onClick={() =>
+		// 				window.open(`mailto:kevinvandy@mailinator.com?subject=Hello ${row.original.firstName}!`)
+		// 			}
+		// 		>
+		// 			<EditIcon />
+		// 		</IconButton>
 
-				<IconButton
-					color="error"
-					onClick={() => {
-						data.splice(row.index, 1);
-					}}
-				>
-					<DesktopAccessDisabledIcon />
-				</IconButton>
-			</Box>,
-		],
+		// 		<IconButton
+		// 			color="error"
+		// 			onClick={() => {
+		// 				data.splice(row.index, 1);
+		// 			}}
+		// 		>
+		// 			<DesktopAccessDisabledIcon />
+		// 		</IconButton>
+		// 	</Box>,
+		// ],
 	});
 
 	const submitTurno = async () => {
 		if (tabValue === 0) {
-			console.log(diaLaboral);
 			if (diaLaboral === 'Lunes-Viernes+Sabado') {
 				const newsDetallesTurnos = Array.from({ length: 5 }, (_, index) => ({
 					numero: index + 1,
 					number: index + 1,
-					inicioMarcacionEntrada: horarioSimple.inicioMarcacionEntrada,
-					finMarcacionEntrada: horarioSimple.finMarcacionEntrada,
-					horaEntrada: horarioSimple.horaEntrada,
+					inicioMarcacionEntrada: horarioSimple.inicioMarcacionEntrada.format('HH:mm:ss'),
+					finMarcacionEntrada: horarioSimple.finMarcacionEntrada.format('HH:mm:ss'),
+					horaEntrada: horarioSimple.horaEntrada.format('HH:mm:ss'),
 
-					inicioMarcacionDescanso: horarioSimple.inicioMarcacionDescanso,
+					inicioMarcacionDescanso: horarioSimple.inicioMarcacionDescanso.format('HH:mm:ss'),
+					finMarcacionDescanso: horarioSimple.finMarcacionDescanso.format('HH:mm:ss'),
 					minutosDescanso: horarioSimple.minutosDescanso,
-					finMarcacionDescanso: horarioSimple.finMarcacionDescanso,
 					habilitarDescanso: horarioSimple.descansoHabilitado,
 
-					inicioMarcacionSalida: horarioSimple.finMarcacionSalida,
-					finMarcacionSalida: horarioSimple.horaSalida,
+					inicioMarcacionSalida: horarioSimple.finMarcacionSalida.format('HH:mm:ss'),
+					finMarcacionSalida: horarioSimple.horaSalida.format('HH:mm:ss'),
+					horaSalida: horarioSimple.horaSalida.format('HH:mm:ss'),
+
+					minutosJornada: minutosDiferencia(horarioSimple.horaEntrada, horarioSimple.horaSalida),
+
+					minutosJornadaNeto:
+						minutosDiferencia(horarioSimple.horaEntrada, horarioSimple.horaSalida) -
+						horarioSimple.minutosDescanso,
+					diaLaboral: true,
+				}));
+
+				newsDetallesTurnos.push({
+					numero: 6,
+					number: 6,
+					inicioMarcacionEntrada: horarioSimple.inicioMarcacionEntradaS.format('HH:mm:ss'),
+					finMarcacionEntrada: horarioSimple.finMarcacionEntradaS.format('HH:mm:ss'),
+					horaEntrada: horarioSimple.horaEntradaS.format('HH:mm:ss'),
+
+					inicioMarcacionDescanso: horarioSimple.inicioMarcacionDescansoS.format('HH:mm:ss'),
+					finMarcacionDescanso: horarioSimple.finMarcacionDescansoS.format('HH:mm:ss'),
+					minutosDescanso: horarioSimple.minutosDescansoS,
+					habilitarDescanso: horarioSimple.descansoHabilitadoS,
+
+					inicioMarcacionSalida: horarioSimple.finMarcacionSalidaS.format('HH:mm:ss'),
+					finMarcacionSalida: horarioSimple.horaSalidaS.format('HH:mm:ss'),
+					horaSalida: horarioSimple.horaSalidaS.format('HH:mm:ss'),
+
+					minutosJornada: minutosDiferencia(horarioSimple.horaEntradaS, horarioSimple.horaSalidaS),
+
+					minutosJornadaNeto:
+						minutosDiferencia(horarioSimple.horaEntradaS, horarioSimple.horaSalidaS) -
+						horarioSimple.minutosDescansoS,
+					diaLaboral: true,
+				});
+
+				const newTurno = {
+					name: nombreTurno,
+					type: diaLaboral,
+					detalleTurno: newsDetallesTurnos,
+				};
+				console.log(newsDetallesTurnos);
+				console.log(newTurno);
+
+				const response = await shiftService.createShift(newTurno);
+			} else if (diaLaboral === 'Lunes-Domingo') {
+				const newsDetallesTurnos = Array.from({ length: 7 }, (_, index) => ({
+					numero: index + 1,
+					number: index + 1,
+					inicioMarcacionEntrada: horarioSimple.inicioMarcacionEntrada.format('HH:mm:ss'),
+					finMarcacionEntrada: horarioSimple.finMarcacionEntrada.format('HH:mm:ss'),
+					horaEntrada: horarioSimple.horaEntrada.format('HH:mm:ss'),
+
+					inicioMarcacionDescanso: horarioSimple.inicioMarcacionDescanso.format('HH:mm:ss'),
+					finMarcacionDescanso: horarioSimple.finMarcacionDescanso.format('HH:mm:ss'),
+					minutosDescanso: horarioSimple.minutosDescanso,
+					habilitarDescanso: horarioSimple.descansoHabilitado,
+
+					inicioMarcacionSalida: horarioSimple.finMarcacionSalida.format('HH:mm:ss'),
+					finMarcacionSalida: horarioSimple.horaSalida.format('HH:mm:ss'),
 					horaSalida: horarioSimple.horaSalida,
 
 					minutosJornada: minutosDiferencia(horarioSimple.horaEntrada, horarioSimple.horaSalida),
@@ -430,13 +509,82 @@ function Turno() {
 						horarioSimple.minutosDescanso,
 					diaLaboral: true,
 				}));
+
 				const newTurno = {
 					name: nombreTurno,
 					type: diaLaboral,
 					detalleTurno: newsDetallesTurnos,
 				};
 				const response = await shiftService.createShift(newTurno);
-				console.log(response);
+			} else if (diaLaboral === 'Lunes-Viernes') {
+				const newsDetallesTurnos = Array.from({ length: 5 }, (_, index) => ({
+					numero: index + 1,
+					number: index + 1,
+					inicioMarcacionEntrada: horarioSimple.inicioMarcacionEntrada.format('HH:mm:ss'),
+					finMarcacionEntrada: horarioSimple.finMarcacionEntrada.format('HH:mm:ss'),
+					horaEntrada: horarioSimple.horaEntrada.format('HH:mm:ss'),
+
+					inicioMarcacionDescanso: horarioSimple.inicioMarcacionDescanso.format('HH:mm:ss'),
+					finMarcacionDescanso: horarioSimple.finMarcacionDescanso.format('HH:mm:ss'),
+					minutosDescanso: horarioSimple.minutosDescanso,
+					habilitarDescanso: horarioSimple.descansoHabilitado,
+
+					inicioMarcacionSalida: horarioSimple.finMarcacionSalida.format('HH:mm:ss'),
+					finMarcacionSalida: horarioSimple.horaSalida.format('HH:mm:ss'),
+					horaSalida: horarioSimple.horaSalida,
+
+					minutosJornada: minutosDiferencia(horarioSimple.horaEntrada, horarioSimple.horaSalida),
+
+					minutosJornadaNeto:
+						minutosDiferencia(horarioSimple.horaEntrada, horarioSimple.horaSalida) -
+						horarioSimple.minutosDescanso,
+					diaLaboral: true,
+				}));
+
+				const newTurno = {
+					name: nombreTurno,
+					type: diaLaboral,
+					detalleTurno: newsDetallesTurnos,
+				};
+				const response = await shiftService.createShift(newTurno);
+			} else if (diaLaboral === 'Personalizado') {
+				const diasSelecionados = selectDias.filter((r) => r.checked);
+
+				console.log(diasSelecionados);
+
+				const newsDetallesTurnos = diasSelecionados.map((e) => {
+					console.log(e);
+					return {
+						numero: e.numero,
+						number: e.numero,
+						inicioMarcacionEntrada: horarioSimple.inicioMarcacionEntrada.format('HH:mm:ss'),
+						finMarcacionEntrada: horarioSimple.finMarcacionEntrada.format('HH:mm:ss'),
+						horaEntrada: horarioSimple.horaEntrada.format('HH:mm:ss'),
+
+						inicioMarcacionDescanso: horarioSimple.inicioMarcacionDescanso.format('HH:mm:ss'),
+						finMarcacionDescanso: horarioSimple.finMarcacionDescanso.format('HH:mm:ss'),
+						minutosDescanso: horarioSimple.minutosDescanso,
+						habilitarDescanso: horarioSimple.descansoHabilitado,
+
+						inicioMarcacionSalida: horarioSimple.finMarcacionSalida.format('HH:mm:ss'),
+						finMarcacionSalida: horarioSimple.horaSalida.format('HH:mm:ss'),
+						horaSalida: horarioSimple.horaSalida,
+
+						minutosJornada: minutosDiferencia(horarioSimple.horaEntrada, horarioSimple.horaSalida),
+
+						minutosJornadaNeto:
+							minutosDiferencia(horarioSimple.horaEntrada, horarioSimple.horaSalida) -
+							horarioSimple.minutosDescanso,
+						diaLaboral: true,
+					};
+				});
+
+				const newTurno = {
+					name: nombreTurno,
+					type: diaLaboral,
+					detalleTurno: newsDetallesTurnos,
+				};
+				const response = await shiftService.createShift(newTurno);
 			}
 		} else {
 			console.log(horarioLaboral);
@@ -448,6 +596,10 @@ function Turno() {
 			const response = await shiftService.createShift(newTurno);
 			console.log(response);
 		}
+
+		setModalNuevoTurno(false);
+		swal('Genial', 'Registro de Turno Exitoso', 'success');
+		fetchData();
 	};
 	return (
 		<>
@@ -528,27 +680,27 @@ function Turno() {
 												{diaLaboral === 'Personalizado' && (
 													<Card sx={{ display: 'flex', justifyContent: 'center' }}>
 														<FormGroup sx={{ display: 'flex' }} row>
-															{daysOfWeek.map((e) => (
+															{selectDias.map((e) => (
 																<FormControlLabel
 																	control={
 																		<Checkbox
-																			defaultChecked
+																			checked={e.checked}
 																			onChange={() => {
-																				setDiaLaboral(e.name);
+																				onChangeSelectDia(e.nombre);
 																			}}
 																		/>
 																	}
-																	label={e.name}
+																	label={e.nombre}
 																/>
 															))}
 														</FormGroup>
 													</Card>
 												)}
 												<Card>
-													Horas Esperadas
+													{/* Horas Esperadas
 													<Typography variant="h4">
 														{formatHours(dataHorarioSimple?.minutosSemanales)}
-													</Typography>
+													</Typography> */}
 												</Card>
 												<Card>
 													<CardHeader title="horario" />
@@ -1226,7 +1378,7 @@ function Turno() {
 																				handleChangeHorarioLaboral(
 																					e,
 																					row.number,
-																					'finRangoMarcacionFinDescanso',
+																					'finMarcacionDescanso',
 																				);
 																			}}
 																		/>

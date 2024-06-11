@@ -1,6 +1,18 @@
 // services/personService.js
 import axiosInstance from './axiosConfig';
 
+
+const guardarMarcacion = async (data) => {
+	try {
+		const response = await axiosInstance.post('/DialingRecords', data);
+		return response.data;
+	} catch (error) {
+		console.error('Error fetching persons:', error);
+		throw error;
+	}
+}
+
+
 const getPersonsContracts = async () => {
 	try {
 		const response = await axiosInstance.get('/Persons/Contract');
@@ -51,6 +63,16 @@ const updatePerson = async (id, person) => {
 	}
 };
 
+const guardarRostro = async (data) => {
+	try {
+		const response = await axiosInstance.post('/Persons/GuardarRostro', data);
+		return response.data;
+	} catch (error) {
+		console.error('Error fetching persons:', error);
+		throw error;
+	}
+};
+
 const comprobarDni = async (data) => {
 	try {
 		const response = await axiosInstance.post('/Persons/ComprobarDni', data);
@@ -77,4 +99,6 @@ export default {
 	deletePerson,
 	getPersonsContracts,
 	comprobarDni,
+	guardarRostro,
+	guardarMarcacion,
 };

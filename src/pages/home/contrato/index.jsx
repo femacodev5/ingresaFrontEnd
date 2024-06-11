@@ -56,10 +56,10 @@ function CardContractsByPersons({ id }) {
 		formState: { errors },
 	} = useForm({
 		defaultValues: {
-			contractId: null,
+			contratoId: null,
 			id: null,
-			startDate: dayjs(),
-			endDate: dayjs(),
+			fechaInicio: dayjs(),
+			fechaFin: dayjs(),
 		},
 	});
 
@@ -73,6 +73,7 @@ function CardContractsByPersons({ id }) {
 
 	async function fetchPersonData() {
 		const response = await personService.getPersonById(id);
+		console.log(response);
 
 		setPersonData(response);
 	}
@@ -84,26 +85,26 @@ function CardContractsByPersons({ id }) {
 	const columnsContractsByIdPerson = useMemo(
 		() => [
 			{
-				accessorKey: 'salary', // access nested data with dot notation
+				accessorKey: 'salario', // access nested data with dot notation
 				header: 'Sueldo',
 			},
 			{
-				accessorKey: 'vacation',
+				accessorKey: 'vacaciones',
 				header: 'Dias de Vacaciones',
 				type: 'number',
 			},
 			{
-				accessorKey: 'startDate', // normal accessorKey
+				accessorKey: 'fechaInicio', // normal accessorKey
 				header: 'Inicio',
 				type: 'datetime',
 			},
 			{
-				accessorKey: 'endDate', // normal accessorKey
+				accessorKey: 'fechaFin', // normal accessorKey
 				header: 'Fin',
 				type: 'datetime',
 			},
 			{
-				accessorKey: 'contractId', // normal accessorKey
+				accessorKey: 'contratoId', // normal accessorKey
 				header: 'contractId',
 				type: 'number',
 				enableHiding: true,
@@ -130,11 +131,11 @@ function CardContractsByPersons({ id }) {
 		try {
 			setisUpdating(true);
 			openCreateContractModal();
-			setValue('startDate', dayjs(data.startDate));
-			setValue('endDate', dayjs(data.endDate));
-			setValue('salary', data.salary);
-			setValue('vacation', data.vacation);
-			setValue('contractId', data.contractId);
+			setValue('fechaInicio', dayjs(data.fechaInicio));
+			setValue('fechaFin', dayjs(data.fechaFin));
+			setValue('salario', data.salario);
+			setValue('vacaciones', data.vacaciones);
+			setValue('contratoId', data.contratoId);
 			setValue('id', data.contractId);
 			// setValue('diasVacaciones', data.vacation);
 		} catch (error) {
@@ -148,8 +149,8 @@ function CardContractsByPersons({ id }) {
 		enableEditing: true,
 		createDisplayMode: 'modal',
 		editDisplayMode: 'modal',
-		getRowId: (row) => row.contractId,
-		initialState: { columnVisibility: { contractId: false } },
+		getRowId: (row) => row.contratoId,
+		initialState: { columnVisibility: { contratoId: false } },
 		renderRowActions: ({ row, table, cell }) => (
 			<Box sx={{ display: 'flex', gap: '1rem' }}>
 				<Tooltip title="Visualizar Contratos">
@@ -171,11 +172,11 @@ function CardContractsByPersons({ id }) {
 		const formData = new FormData();
 		formData.append('file', data.contrato[0]);
 
-		formData.append('startDate', dayjs(data.startDate).format('YYYY-MM-DD'));
-		formData.append('endDate', dayjs(data.endDate).format('YYYY-MM-DD'));
-		formData.append('vacation', data.vacation);
-		formData.append('salary', data.salary);
-		formData.append('personid', id);
+		formData.append('fechaInicio', dayjs(data.fechaInicio).format('YYYY-MM-DD'));
+		formData.append('fechaFin', dayjs(data.fechaFin).format('YYYY-MM-DD'));
+		formData.append('vacaciones', data.vacaciones);
+		formData.append('salario', data.salario);
+		formData.append('empID', id);
 
 		await contractService.createContract(formData);
 	};
@@ -185,18 +186,18 @@ function CardContractsByPersons({ id }) {
 		const formData = new FormData();
 
 		formData.append('file', dataForm?.contrato ? dataForm?.contrato[0] : null);
-		formData.append('startDate', dayjs(dataForm.startDate).format('YYYY-MM-DD'));
+		formData.append('fechaInicio', dayjs(dataForm.fechaInicio).format('YYYY-MM-DD'));
 
-		formData.append('contractId', dataForm.contractId);
-		formData.append('endDate', dayjs(dataForm.endDate).format('YYYY-MM-DD'));
-		formData.append('vacation', dataForm.vacation);
-		formData.append('salary', dataForm.salary);
-		formData.append('personid', id);
+		formData.append('contratoId', dataForm.contratoId);
+		formData.append('fechaFin', dayjs(dataForm.fechaFin).format('YYYY-MM-DD'));
+		formData.append('vacaciones', dataForm.vacaciones);
+		formData.append('salario', dataForm.salario);
+		formData.append('empID', id);
 
-		await contractService.updateContract(dataForm.contractId, formData);
+		await contractService.updateContract(dataForm.contratoId, formData);
 	};
 	const onSubmit = async (data) => {
-		if (data.contractId) {
+		if (data.contratoId) {
 			await updateNewContract(data);
 		} else {
 			await createNewContract(data);
@@ -232,7 +233,7 @@ function CardContractsByPersons({ id }) {
 					<LocalizationProvider fullWidth dateAdapter={AdapterDayjs}>
 						<Box sx={{ display: 'flex', flexDirection: 'column' }}>
 							<Controller
-								name="startDate"
+								name="fechaInicio"
 								control={control}
 								rules={{ required: 'Inicio de contrato es requerido' }}
 								render={({ field }) => (
@@ -254,7 +255,7 @@ function CardContractsByPersons({ id }) {
 								)}
 							/>
 							<Controller
-								name="endDate"
+								name="fechaFin"
 								fullWidth
 								rules={{ required: 'Fin de contrato es requerido' }}
 								control={control}
@@ -265,8 +266,8 @@ function CardContractsByPersons({ id }) {
 											<TextField
 												{...params}
 												fullWidth
-												error={!!errors.endDate}
-												helperText={errors.endDate?.message}
+												error={!!errors.fechaFin}
+												helperText={errors.fechaFin?.message}
 											/>
 										)}
 										label="Fin de Contrato"
@@ -279,7 +280,7 @@ function CardContractsByPersons({ id }) {
 						</Box>
 					</LocalizationProvider>
 					<Controller
-						name="salary"
+						name="salario"
 						control={control}
 						rules={{ required: 'Sueldo es requerido' }}
 						render={({ field }) => (
@@ -291,13 +292,13 @@ function CardContractsByPersons({ id }) {
 								label="Sueldo"
 								variant="outlined"
 								type="number"
-								error={!!errors.salary}
-								helperText={errors.salary?.message}
+								error={!!errors.salario}
+								helperText={errors.salario?.message}
 							/>
 						)}
 					/>
 					<Controller
-						name="vacation"
+						name="vacaciones"
 						control={control}
 						rules={{ required: 'Días de vacaciones son requeridos' }}
 						render={({ field }) => (
@@ -309,8 +310,8 @@ function CardContractsByPersons({ id }) {
 								label="Días de Vacaciones"
 								variant="outlined"
 								type="number"
-								error={!!errors.vacation}
-								helperText={errors.vacation?.message}
+								error={!!errors.vacaciones}
+								helperText={errors.vacaciones?.message}
 							/>
 						)}
 					/>
@@ -378,7 +379,7 @@ function CardContractsByPersons({ id }) {
 								<CardContent>
 									<Divider />
 									<Typography variant="body2" sx={{ py: 2 }} color="text.secondary">
-										<b>Identificación : </b> {personData?.documentNumber}
+										<b>Identificación : </b> {personData?.code}
 									</Typography>
 									<Divider />
 									<Typography variant="body2" sx={{ py: 2 }} color="text.secondary">
@@ -463,15 +464,15 @@ function Contrato() {
 				header: 'Apellido',
 			},
 			{
-				accessorKey: 'documentNumber', // normal accessorKey
+				accessorKey: 'code', // normal accessorKey
 				header: 'Dni',
 			},
 			{
-				accessorKey: 'startDate', // normal accessorKey
+				accessorKey: 'fechaInicio', // normal accessorKey
 				header: 'Inicio de Contrato',
 			},
 			{
-				accessorKey: 'endDate', // normal accessorKey
+				accessorKey: 'fechaFin', // normal accessorKey
 				header: 'Fin de Contrato',
 				columnVisibility: false,
 				enableHiding: true,
@@ -501,7 +502,7 @@ function Contrato() {
 	const dataFinaLizarContrato = (data) => {
 		setNombreContrato(data.fileName);
 
-		setValue('personId', data.personId);
+		setValue('empID', data.empID);
 		setOpenModalFinalizarContratoPersona(true);
 	};
 
@@ -511,7 +512,7 @@ function Contrato() {
 		enableEditing: true,
 		enableHiding: true,
 		initialState: { columnVisibility: { personId: false } },
-		getRowId: (row) => row.personId,
+		getRowId: (row) => row.empID,
 		renderRowActions: ({ row, table }) => (
 			<Box sx={{ display: 'flex', gap: '1rem' }}>
 				<Tooltip title="Visualizar Contratos">
@@ -543,7 +544,7 @@ function Contrato() {
 		const formData = new FormData();
 		formData.append('file', dataForm.contrato[0]);
 		formData.append('fechaFinContrato', dayjs(dataForm.endDate).format('YYYY-MM-DD'));
-		formData.append('personId', dataForm.personId);
+		formData.append('empID', dataForm.empID);
 		await contractService.endContract(formData);
 	}
 	return (
@@ -620,7 +621,7 @@ function Contrato() {
 										{field.value ? (
 											<Typography variant="body1">{field.value[0]?.name}</Typography>
 										) : (
-											'Seleccionar Contrato'
+											'Seleccionar Documento de cese de contrato'
 										)}
 									</Button>
 								</Box>

@@ -98,7 +98,7 @@ function LoggedUser() {
 					<Stack width="100%" direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
 						<Avatar
 							alt="User Img"
-							src={avatar2}
+							// src={avatar2}
 							sx={{
 								width: 35,
 								height: 35,
@@ -113,7 +113,7 @@ function LoggedUser() {
 								sm: 'inline-block',
 							}}
 						>
-							{user.person.firstName} {user.person.lastName}
+							{user?.person?.firstName} {user?.person?.lastName}
 						</Typography>
 						<ExpandMoreIcon
 							fontSize="small"

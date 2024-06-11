@@ -36,10 +36,6 @@ const NAV_LINKS_CONFIG = [
 				title: 'Contrato',
 				href: '/home/contrato',
 			},
-			{
-				title: 'Grupo',
-				href: '/home/grupo',
-			},
 		],
 	},
 	{
@@ -53,344 +49,34 @@ const NAV_LINKS_CONFIG = [
 				href: '/home/turno',
 			},
 			{
-				title: 'Fereados',
-				href: '/home/Fereado',
+				title: 'Feriados',
+				href: '/home/Feriado',
 			},
 		],
 	},
 
 	{
 		id: uuid(),
-		type: 'group',
+		type: 'item',
 		title: 'Marcacion',
+		href: '/home/marcacion',
 		Icon: BarChartOutlinedIcon,
-		menuChildren: [
-			{
-				title: 'Maracacion',
-				href: '/home/Marcacion',
-			},
-		],
 	},
+
 	{
 		id: uuid(),
 		type: 'group',
-		title: 'Components',
-		Icon: GridViewOutlinedIcon,
+		title: 'Reportes',
 		menuChildren: [
 			{
-				title: 'Forms',
-				href: '/components/forms',
-			},
-			{
-				title: 'Tables',
-				href: '/components/tables',
-			},
-			{
-				title: 'Modal',
-				href: '/components/modal',
-			},
-			{
-				title: 'Loaders',
-				href: '/components/loaders',
-			},
-			{
-				title: 'Snackbar/Toast',
-				href: '/components/snackbar',
-			},
-			{
-				title: 'Carousel',
-				href: '/components/carousel',
-			},
-			{
-				title: 'Navigation',
-				// navbar
-				href: '/components/navigation',
-			},
-			{
-				title: 'UI Elements',
-				type: 'group',
-				menuChildren: [
-					{
-						title: 'Card',
-						href: '/components/card',
-					},
-					{
-						title: 'CardHeader',
-						href: '/components/cardHeader',
-					},
-					{
-						title: 'PageHeader',
-						href: '/components/pageHeader',
-					},
-					/* {
-						title: 'Paper',
-						href: '/components/ui/paper',
-					}, 
-					{
-						title: 'Buttons',
-						href: '/components/buttons',
-					},
-					*/
-				],
+				title: 'Asistencia',
+				href: '/home/Asistencia',
 			},
 
-			{
-				title: 'Level 0',
-				type: 'group',
-				menuChildren: [
-					{
-						title: 'Level 1a',
-						href: '/1a',
-					},
-					{
-						title: 'Level 1b',
-						type: 'group',
-						menuChildren: [
-							{
-								title: 'Level 2a',
-								href: '/2a',
-							},
-							{
-								title: 'Level 2b',
-								href: '/2b',
-							},
-							{
-								title: 'Level 2c',
-								type: 'group',
-								menuChildren: [
-									{
-										title: 'Level 3a',
-										href: '/3a',
-									},
-									{
-										title: 'Level 3b',
-										type: 'group',
-										menuChildren: [
-											{
-												title: 'Level 4a',
-												href: '/3b',
-											},
-										],
-									},
-									{
-										title: 'Level 3c',
-										href: '/3c',
-									},
-								],
-							},
-						],
-					},
-					{
-						title: 'Level 1c',
-						href: '/1c',
-					},
-				],
-			},
 		],
+		Icon: BarChartOutlinedIcon,
 	},
-	{
-		id: uuid(),
-		type: 'group',
-		title: 'Pages',
-		Icon: AutoStoriesOutlinedIcon,
-		menuChildren: [
-			{
-				id: uuid(),
-				title: 'Sign in',
-				type: 'group',
-				menuChildren: [
-					{
-						title: 'Sign in',
-						href: '/pages/login',
-					},
-					{
-						title: 'Sign in Simple',
-						href: '/pages/login/simple',
-					},
-					{
-						title: 'Sign in Split',
-						href: '/pages/login/split',
-					},
-				],
-			},
-			{
-				id: uuid(),
-				title: 'Sign up',
-				type: 'group',
-				menuChildren: [
-					{
-						title: 'Sign up',
-						href: '/pages/signup',
-					},
-					{
-						title: 'Sign up Simple',
-						href: '/pages/signup/simple',
-					},
-					{
-						title: 'Sign up Split',
-						href: '/pages/signup/split',
-					},
-				],
-			},
-			{
-				title: 'WIP',
-				href: '/pages/wip',
-			},
-			{
-				title: 'Account Settings',
-				href: '/pages/settings',
-			},
-			{
-				title: 'Notifications',
-				href: '/pages/notifications',
-			},
-			{
-				title: 'Profile WIP',
-				href: '/pages/login',
-			},
-			{
-				id: uuid(),
-				title: 'Error Pages',
-				type: 'group',
-				menuChildren: [
-					{
-						title: '403 Unauthorized',
-						href: '/pages/error/403',
-					},
-					{
-						title: '404 Not Found',
-						href: '/pages/error/404',
-					},
-					{
-						title: '500 Internal Server',
-						href: '/pages/error/500',
-					},
-					{
-						title: '503 Service Unavailable',
-						href: '/pages/error/503',
-					},
-					{
-						title: '505 Forbidden',
-						href: '/pages/error/505',
-					},
-				],
-			},
-			{
-				id: uuid(),
-				title: 'Pricing Pages',
-				type: 'group',
-				menuChildren: [
-					{
-						title: 'Pricing 1',
-						href: '/pages/pricing/pricing1',
-					},
-					{
-						title: 'Pricing 2',
-						href: '/pages/pricing/pricing2',
-					},
-				],
-			},
-			{
-				id: uuid(),
-				title: 'Landing Pages WIP',
-				type: 'group',
-				menuChildren: [
-					{
-						title: 'Landing01',
-						href: '/pages/landing/landing1',
-					},
-					{
-						title: 'Landing02',
-						href: '/pages/landing/landing2',
-					},
-					{
-						title: 'Landing03',
-						href: '/pages/landing/landing3',
-					},
-					{
-						title: 'Landing04',
-						href: '/pages/landing/landing4',
-					},
-				],
-			},
-		],
-	},
-	{
-		id: uuid(),
-		type: 'group',
-		title: 'Theme',
-		Icon: PaletteOutlinedIcon,
-		menuChildren: [
-			{
-				title: 'Paleta de Colores',
-				href: '/theme/colors',
-			},
-			{
-				title: 'Tipografia',
-				href: '/theme/typography',
-			},
-			{
-				title: 'Sombras',
-				href: '/theme/boxShadow',
-			},
 
-			/* {
-				title: 'Iconos',
-				href: '/theme/icons',
-			}, */
-			{
-				title: 'Utilities WIP',
-				// Breakpoints
-				href: '/theme/utils',
-			},
-			// libraries/ packgaes ej.> moment
-		],
-	},
-	{
-		id: uuid(),
-		type: 'group',
-		title: 'Apps',
-		Icon: InventoryOutlinedIcon,
-		menuChildren: [
-			{
-				title: 'Ecommerce WIP',
-				href: '/profile WIP',
-			},
-			{
-				title: 'Social Feed WIP',
-				href: '/profile WIP',
-			},
-			{
-				title: 'Calendar WIP',
-				href: '/profile WIP',
-			},
-			{
-				title: 'Chat WIP',
-				href: '/profile WIP',
-			},
-		],
-	},
-	{
-		id: uuid(),
-		type: 'item',
-		title: 'Sample Tab',
-		Icon: WebOutlinedIcon,
-		href: '/samplePage',
-	},
-	{
-		id: uuid(),
-		type: 'item',
-		title: 'Widgets',
-		Icon: WidgetsOutlinedIcon,
-		href: '/widgets',
-	},
-	{
-		id: uuid(),
-		type: 'item',
-		title: 'Perfil',
-		Icon: AccountCircleOutlinedIcon,
-		href: '/profile',
-	},
 ];
 
 export default NAV_LINKS_CONFIG;
